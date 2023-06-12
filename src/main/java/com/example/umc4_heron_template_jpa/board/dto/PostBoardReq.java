@@ -1,0 +1,24 @@
+package com.example.umc4_heron_template_jpa.board.dto;
+
+import lombok.AllArgsConstructor;
+import lombok.Getter;
+import lombok.NoArgsConstructor;
+
+import javax.validation.constraints.NotBlank;
+import javax.validation.constraints.Size;
+
+@NoArgsConstructor
+@AllArgsConstructor
+@Getter
+public class PostBoardReq {
+    // build.gradle의 dependencies에
+    // implementation 'org.springframework.boot:spring-boot-starter-validation'
+    // 추가해야 Not Blank와 Size사용 가능
+    private String email;
+    @NotBlank(message = "제목을 입력하세요.")
+    @Size(min=2, max=20, message = "제목의 길이는 2~20글자까지 입력 가능합니다.")
+    private String title;
+    @NotBlank(message = "본문을 입력하세요.")
+    @Size(min=2, max=100, message = "본문의 길이는 2~100글자까지 입력 가능합니다.")
+    private String content;
+}
