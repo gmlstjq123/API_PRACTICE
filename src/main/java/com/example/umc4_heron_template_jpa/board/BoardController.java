@@ -42,8 +42,8 @@ public class BoardController {
         }
     }
     /** 게시글을 Id로 조회하기 **/
-    @GetMapping("/board/{boardId}")
-    public BaseResponse<PostBoardRes> getBoard(@PathVariable(name = "boardId") Long boardId) {
+    @GetMapping("/board/{board-id}")
+    public BaseResponse<PostBoardRes> getBoard(@PathVariable(name = "board-id") Long boardId) {
         if(boardId == 0){
             return new BaseResponse<>(INVALID_BOARD_ID);
         }
@@ -69,12 +69,9 @@ public class BoardController {
     @PatchMapping("/modify")
     public BaseResponse<String> modifyBoard(@RequestParam String email, @RequestParam String exTitle,
                                             @RequestParam String newTitle, @RequestParam String newContent) {
-        // PostMan에서 Headers에 Authorization 필드를 추가하고, 로그인할 때 받은 jwt 토큰을 입력해야 실행이 됩니다.
         try {
             Member member = memberRepository.findMemberByEmail(email);
-            //jwt에서 idx 추출.
             Long userIdxByJwt = jwtService.getUserIdx();
-            //userIdx와 접근한 유저가 같은지 확인
             if(!member.getId().equals(userIdxByJwt)){
                 return new BaseResponse<>(INVALID_USER_JWT);
             }
