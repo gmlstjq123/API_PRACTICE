@@ -81,10 +81,10 @@ public class MemberService {
     public List<GetMemberRes> getMembers() throws BaseException {
         try{
             List<Member> members = memberRepository.findMembers(); //Member List로 받아 GetMemberRes로 바꿔줌
-            List<GetMemberRes> GetMemberRes = members.stream()
+            List<GetMemberRes> getMemberRes = members.stream()
                     .map(member -> new GetMemberRes(member.getId(), member.getNickName(), member.getEmail(), member.getPassword()))
                     .collect(Collectors.toList());
-            return GetMemberRes;
+            return getMemberRes;
         } catch (Exception exception) {
             throw new BaseException(DATABASE_ERROR);
         }

@@ -47,8 +47,8 @@ public class BoardService {
     }
 
     @Transactional
-    public Board getBoard(Long boardID) throws BaseException{
-        Board board = boardRepository.findBoardById(boardID);
+    public Board getBoard(Long boardId) throws BaseException{
+        Board board = boardRepository.findBoardById(boardId);
         if(board == null){
             throw new BaseException(NONE_EXIST_BOARD);
         }

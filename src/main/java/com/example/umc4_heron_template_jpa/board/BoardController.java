@@ -1,9 +1,6 @@
 package com.example.umc4_heron_template_jpa.board;
 
-import com.example.umc4_heron_template_jpa.board.dto.DeleteBoardReq;
-import com.example.umc4_heron_template_jpa.board.dto.PatchBoardReq;
-import com.example.umc4_heron_template_jpa.board.dto.PostBoardReq;
-import com.example.umc4_heron_template_jpa.board.dto.PostBoardRes;
+import com.example.umc4_heron_template_jpa.board.dto.*;
 import com.example.umc4_heron_template_jpa.config.BaseException;
 import com.example.umc4_heron_template_jpa.config.BaseResponse;
 import com.example.umc4_heron_template_jpa.config.BaseResponseStatus;
@@ -43,15 +40,15 @@ public class BoardController {
     }
     /** 게시글을 Id로 조회하기 **/
     @GetMapping("/board/{board-id}")
-    public BaseResponse<PostBoardRes> getBoard(@PathVariable(name = "board-id") Long boardId) {
+    public BaseResponse<GetBoardRes> getBoard(@PathVariable(name = "board-id") Long boardId) {
         if(boardId == 0){
             return new BaseResponse<>(INVALID_BOARD_ID);
         }
         try{
             Board board = boardService.getBoard(boardId);
             Member member = board.getMember();
-            PostBoardRes postBoardRes = new PostBoardRes(member.getNickName(), board.getTitle(), board.getContent());
-            return new BaseResponse<>(postBoardRes);
+            GetBoardRes getBoardRes = new GetBoardRes(boardId, member.getNickName(), board.getTitle(), board.getContent());
+            return new BaseResponse<>(getBoardRes);
         } catch(BaseException exception){
             return new BaseResponse<>(exception.getStatus());
         }

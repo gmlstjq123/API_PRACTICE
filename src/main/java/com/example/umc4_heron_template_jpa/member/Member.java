@@ -1,6 +1,6 @@
 package com.example.umc4_heron_template_jpa.member;
 
-import com.example.umc4_heron_template_jpa.board.Board;
+import com.example.umc4_heron_template_jpa.board.Board ;
 import com.example.umc4_heron_template_jpa.utils.BaseTimeEntity;
 import lombok.Getter;
 import lombok.NoArgsConstructor;

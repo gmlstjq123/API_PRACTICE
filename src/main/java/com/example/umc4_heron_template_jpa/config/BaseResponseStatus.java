@@ -55,7 +55,7 @@ public enum BaseResponseStatus {
     MODIFY_FAIL_USERNAME(false,4014,"유저네임 수정에 실패하였습니다"),
 
     //[PATCH] /users/{boardIdx}
-    MODIFY_FAIL_BOARDTITLE(false, 4015, "게시글 제목 수정에 실패하였습니다"),
+    MODIFY_FAIL_BOARD_TITLE(false, 4015, "게시글 제목 수정에 실패하였습니다"),
 
     DELETE_FAIL_USER(false, 4016, "멤버 삭제에 실패하였습니다."),
     CANNOT_DELETE(false, 5004, "작성된 게시글이 존재하여 멤버를 삭제하는데 실패하였습니다."),
