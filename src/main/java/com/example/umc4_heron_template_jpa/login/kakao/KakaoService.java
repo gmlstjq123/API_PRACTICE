@@ -44,10 +44,10 @@ public class KakaoService {
         //Httpheader 생성
         HttpHeaders httpHeaders = new HttpHeaders();
         httpHeaders.add("Authorization", "Bearer " + accessToken);
-        httpHeaders.add("Content-type", "application/x-www-form-urlencoded;charset=utf-8");
+        // httpHeaders.add("Content-type", "application/x-www-form-urlencoded;charset=utf-8");
 
         //Httpheader와 HttpBody를 하나의 객체에 담기(body 정보는 생략 가능)
-        HttpEntity<MultiValueMap<String, String>> requestEntity = new HttpEntity<>(httpHeaders);
+        HttpEntity<String> requestEntity = new HttpEntity<>(httpHeaders);
 
         //RestTemplate를 이용하면 브라우저 없이 HTTP 요청을 처리할 수 있다.
         RestTemplate restTemplate = new RestTemplate();
@@ -71,7 +71,6 @@ public class KakaoService {
         String email = (String) ((Map<?, ?>)(data.get("kakao_account"))).get("email");
 
         return email;
-
     }
 
     public String getMemberNickname(String accessToken) {

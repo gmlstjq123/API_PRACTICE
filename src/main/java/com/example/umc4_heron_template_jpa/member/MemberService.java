@@ -160,34 +160,30 @@ public class MemberService {
     }
 
     public BaseResponse<?> logout(String accessToken) throws BaseException{
-        try {
-            // HttpHeader 생성
-            HttpHeaders httpHeaders = new HttpHeaders();
-            httpHeaders.add("Authorization", "Bearer " + accessToken);
+        // HttpHeader 생성
+        HttpHeaders httpHeaders = new HttpHeaders();
+        httpHeaders.add("Authorization", "Bearer " + accessToken);
 
-            // HttpHeader를 포함한 요청 객체 생성
-            HttpEntity<String> requestEntity = new HttpEntity<>(httpHeaders);
+        // HttpHeader를 포함한 요청 객체 생성
+        HttpEntity<String> requestEntity = new HttpEntity<>(httpHeaders);
 
-            // RestTemplate를 이용하여 로그아웃 요청 보내기
-            RestTemplate restTemplate = new RestTemplate();
-            ResponseEntity<String> responseEntity = restTemplate.exchange(
-                    "https://kapi.kakao.com/v1/user/unlink",
-                    HttpMethod.GET,
-                    requestEntity,
-                    String.class
-            );
+        // RestTemplate를 이용하여 로그아웃 요청 보내기
+        RestTemplate restTemplate = new RestTemplate();
+        ResponseEntity<String> responseEntity = restTemplate.exchange(
+                "https://kapi.kakao.com/v1/user/unlink",
+                HttpMethod.GET,
+                requestEntity,
+                String.class
+        );
 
-            // 응답 확인
-            if (responseEntity.getStatusCode() == HttpStatus.OK) {
-                // 로그아웃 성공
-                String result = "로그아웃되었습니다.";
-                return new BaseResponse<>(result);
-            } else {
-                // 로그아웃 실패
-                throw new BaseException(FAILED_TO_LOGOUT);
-            }
-        } catch (Exception e) {
-            // 예외 처리
+        // 응답 확인
+        if (responseEntity.getStatusCode() == HttpStatus.OK) {
+            // 로그아웃 성공
+            String result = "로그아웃되었습니다.";
+            return new BaseResponse<>(result);
+        }
+        else {
+            // 로그아웃 실패
             throw new BaseException(FAILED_TO_LOGOUT);
         }
     }

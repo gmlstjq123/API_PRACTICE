@@ -30,39 +30,34 @@ public class KakaoController {
     @PostMapping("/oauth/kakao")
     public BaseResponse<?> kakaoCallback(@RequestParam("accToken") String accessToken,
                                          @RequestParam("refToken") String refreshToken) {
-        try {
-            String memberEmail = kaKaoLoginService.getMemberEmail(accessToken);
-            String memberNickName = kaKaoLoginService.getMemberNickname(accessToken);
-            Optional<Member> findMember = memberRepository.findByEmail(memberEmail);
-
-            if (!findMember.isPresent()) {
-                Member kakaoMember = new Member();
-                kakaoMember.updateEmail(memberEmail);
-                kakaoMember.updateNickName(memberNickName);
-                kakaoMember.updateIsSocialLogin();
-                JwtResponseDTO.TokenInfo tokenInfo = JwtResponseDTO.TokenInfo.builder()
-                        .accessToken(accessToken)
-                        .refreshToken(refreshToken)
-                        .build();
-                kakaoMember.updateAccessToken(accessToken);
-                kakaoMember.updateRefreshToken(refreshToken);
-                memberRepository.save(kakaoMember);
-                return new BaseResponse<>(tokenInfo);
-            } else {
-                Member member = findMember.get();
-                JwtResponseDTO.TokenInfo tokenInfo = jwtProvider.generateToken(member.getId());
-                member.updateRefreshToken(tokenInfo.getRefreshToken());
-                member.updateIsSocialLogin();
-                memberRepository.save(member);
-                return new BaseResponse<>(tokenInfo);
-            }
-
-        } catch(Exception e){
-            log.error(e.getMessage());
-            return null;
+        String memberEmail = kaKaoLoginService.getMemberEmail(accessToken);
+        String memberNickName = kaKaoLoginService.getMemberNickname(accessToken);
+        Optional<Member> findMember = memberRepository.findByEmail(memberEmail);
+        if (!findMember.isPresent()) {
+            Member kakaoMember = new Member();
+            kakaoMember.updateEmail(memberEmail);
+            kakaoMember.updateNickName(memberNickName);
+            kakaoMember.updateIsSocialLogin();
+            JwtResponseDTO.TokenInfo tokenInfo = JwtResponseDTO.TokenInfo.builder()
+                    .accessToken(accessToken)
+                    .refreshToken(refreshToken)
+                    .build();
+            kakaoMember.updateAccessToken(accessToken);
+            kakaoMember.updateRefreshToken(refreshToken);
+            memberRepository.save(kakaoMember);
+            return new BaseResponse<>(tokenInfo);
         }
 
+        else {
+            Member member = findMember.get();
+            JwtResponseDTO.TokenInfo tokenInfo = jwtProvider.generateToken(member.getId());
+            member.updateRefreshToken(tokenInfo.getRefreshToken());
+            member.updateIsSocialLogin();
+            memberRepository.save(member);
+            return new BaseResponse<>(tokenInfo);
+        }
     }
+
 
     //카카오 로그아웃 코드
     @GetMapping("/oauth/kakaologout")
