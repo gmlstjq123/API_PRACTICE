@@ -80,7 +80,7 @@ public class KakaoService {
         httpHeaders.add("Content-type", "application/x-www-form-urlencoded;charset=utf-8");
 
         // HttpHeader와 HttpBody를 하나의 객체에 담기(body 정보는 생략 가능)
-        HttpEntity<MultiValueMap<String, String>> requestEntity = new HttpEntity<>(httpHeaders);
+        HttpEntity<String> requestEntity = new HttpEntity<>(httpHeaders);
 
         // RestTemplate를 이용하여 HTTP 요청 처리
         RestTemplate restTemplate = new RestTemplate();
