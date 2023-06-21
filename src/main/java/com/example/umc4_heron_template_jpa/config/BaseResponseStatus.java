@@ -18,10 +18,11 @@ public enum BaseResponseStatus {
     EMPTY_JWT(false, 2001, "JWT를 입력해주세요."),
     INVALID_JWT(false, 2002, "유효하지 않은 JWT입니다."),
     INVALID_USER_JWT(false,2003,"권한이 없는 유저의 접근입니다."),
-
+    EXPIRED_USER_JWT(false,2004,"만료된 JWT입니다."),
+    REISSUE_TOKEN(false, 2005, "토큰이 만료되었습니다. 다시 로그인해주세요."),
     // users
     USERS_EMPTY_USER_ID(false, 2010, "유저 아이디 값을 확인해주세요."),
-
+    PASSWORD_CANNOT_BE_NULL(false, 2011, "비밀번호를 입력해주세요."),
     // [POST] /users
     POST_USERS_EMPTY_EMAIL(false, 2015, "이메일을 입력해주세요."),
     POST_USERS_INVALID_EMAIL(false, 2016, "이메일 형식을 확인해주세요."),
@@ -41,8 +42,9 @@ public enum BaseResponseStatus {
     // [POST] /users
     DUPLICATED_EMAIL(false, 3013, "중복된 이메일입니다."),
     FAILED_TO_LOGIN(false,3014,"비밀번호가 틀렸습니다."),
-    MEMBER_NOT_FOUND(false, 3015, "등록된 이메일이 아닙니다."),
-    INCORRECT_PASSWORD(false, 3016, "비밀번호가 틀렸습니다"),
+    FAILED_TO_LOGOUT(false, 3015, "로그아웃에 실패하였습니다"),
+    MEMBER_NOT_FOUND(false, 3016, "등록된 이메일이 아닙니다."),
+    INCORRECT_PASSWORD(false, 3017, "비밀번호가 틀렸습니다"),
 
 
     /**
@@ -71,9 +73,14 @@ public enum BaseResponseStatus {
     EXCEEDED_TITLE_LIMIT(false, 5002, "제목이 글자수 제한을 초과하였습니다."),
     EXCEEDED_CONTENT_LIMIT(false, 5003, "본문이 글자수 제한을 초과하였습니다."),
     BOARD_NOT_FOUND(false, 5004, "요청하신 제목의 게시글은 존재하지 않습니다."),
-    SAME_TITLE_ERROR(false, 5005, "동일한 게시글이 2개 이상 존재해 수정을 진행할 수 없습니다.");
-    // 6000 : 필요시 만들어서 쓰세요
+    SAME_TITLE_ERROR(false, 5005, "동일한 게시글이 2개 이상 존재해 수정을 진행할 수 없습니다."),
 
+    /**
+     *   6000 : 회원등록 관련 오류
+     */
+    NICKNAME_ERROR(false, 5000, "이미 존재하는 닉네임입니다."),
+    KAKAO_ERROR(false, 5001, "카카오 로그아웃에 실패했습니다."),
+    INTRODUCE_ERROR(false, 5002, "한줄 소개는 0~30자이어야 합니다.");
 
     private final boolean isSuccess;
     private final int code;

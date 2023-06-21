@@ -6,10 +6,20 @@ import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
 import java.util.List;
+import java.util.Optional;
 
 public interface MemberRepository extends JpaRepository<Member, Long> {
     @Query("select m from Member m where m.id = :id")
     Member findMemberById(@Param("id") Long id);
+
+    @Query("select m from Member m where m.refreshToken = :refreshToken")
+    Member findMemberByRefreshToken(@Param("refreshToken") String refreshToken);
+
+    @Query("select m from Member m where m.accessToken = :accessToken")
+    Member findMemberByAccessToken(@Param("accessToken") String accessToken);
+
+    Optional<Member> findByEmail(String email);
+    Optional<Member> findByNickName(String nickname);
 
     @Query("select count(m) from Member m where m.email = :email")
     Integer findByEmailCount(@Param("email") String email);

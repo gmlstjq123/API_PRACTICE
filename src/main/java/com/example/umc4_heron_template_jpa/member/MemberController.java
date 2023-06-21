@@ -2,8 +2,13 @@ package com.example.umc4_heron_template_jpa.member;
 
 import com.example.umc4_heron_template_jpa.config.BaseException;
 import com.example.umc4_heron_template_jpa.config.BaseResponse;
+import com.example.umc4_heron_template_jpa.login.dto.JwtResponseDTO;
+import com.example.umc4_heron_template_jpa.login.jwt.JwtProvider;
+import com.example.umc4_heron_template_jpa.login.jwt.JwtService;
+import com.example.umc4_heron_template_jpa.login.kakao.KakaoService;
 import com.example.umc4_heron_template_jpa.member.dto.*;
-import com.example.umc4_heron_template_jpa.utils.JwtService;
+import com.fasterxml.jackson.databind.ser.Serializers;
+import io.jsonwebtoken.Claims;
 import lombok.RequiredArgsConstructor;
 import org.springframework.web.bind.annotation.*;
 
@@ -19,7 +24,8 @@ public class MemberController {
     private final MemberService memberService;
     private final MemberRepository memberRepository;
     private final JwtService jwtService;
-
+    private final KakaoService kakaoService;
+    private final JwtProvider jwtProvider;
     /**
      * 회원 가입
      */
@@ -44,6 +50,21 @@ public class MemberController {
         } catch (BaseException exception) {
             return new BaseResponse<>(exception.getStatus());
         }
+    }
+
+    @PostMapping("/log-out")
+    public BaseResponse<String> logoutMember() {
+        String accessToken = jwtService.getJwt();
+        Member member = memberRepository.findMemberByAccessToken(accessToken);
+        if(member == null){
+            return new BaseResponse<>(INVALID_JWT);
+        }
+
+        member.updateRefreshToken("");
+        member.updateAccessToken("");
+        memberRepository.save(member);
+        String result = "로그아웃 되었습니다";
+        return new BaseResponse<>(result);
     }
 
 
@@ -76,22 +97,40 @@ public class MemberController {
     public BaseResponse<String> modifyUserName(@RequestParam String email, @RequestParam String nickName) {
         // PostMan에서 Headers에 Authorization필드를 추가하고, 로그인할 때 받은 jwt 토큰을 입력해야 실행이 됩니다.
         try {
+            String accessToken = jwtService.getJwt();
+            String refreshToken = jwtService.getRefJwt();
             Member member = memberRepository.findMemberByEmail(email);
-            //jwt에서 idx 추출.
-            Long userIdxByJwt = jwtService.getUserIdx();
-            //userIdx와 접근한 유저가 같은지 확인
-            if(!member.getId().equals(userIdxByJwt)){
-                return new BaseResponse<>(INVALID_USER_JWT);
+            if (member == null) {
+                return new BaseResponse<>(MEMBER_NOT_FOUND);
             }
-            //같다면 유저네임 변경
-            PatchMemberReq patchMemberReq = new PatchMemberReq(member.getId(), nickName);
-            memberService.modifyUserName(patchMemberReq);
-            String result = "회원정보가 수정되었습니다.";
-            return new BaseResponse<>(result);
-        }  catch (BaseException exception) {
+            if (!member.isSocialLogin()) {
+                Long userIdxByJwt = jwtService.getMemberIdxWithToken(member.getAccessToken());
+                if (!member.getId().equals(userIdxByJwt)) {
+                    return new BaseResponse<>(INVALID_USER_JWT);
+                }
+                PatchMemberReq patchMemberReq = new PatchMemberReq(member.getId(), nickName);
+                memberService.modifyUserName(patchMemberReq);
+                String result = "회원정보가 수정되었습니다.";
+                return new BaseResponse<>(result);
+            }
+            else {
+                //jwt에서 idx 추출.
+                String memberEmail = kakaoService.getMemberEmail(member.getAccessToken());
+                //멤버의 이메일과 JWT로 추출한 이메일이 같은지 확인
+                if (!member.getEmail().equals(memberEmail)) {
+                    throw new BaseException(INVALID_USER_JWT);
+                }
+                //같다면 유저네임 변경
+                PatchMemberReq patchMemberReq = new PatchMemberReq(member.getId(), nickName);
+                memberService.modifyUserName(patchMemberReq);
+                String result = "회원정보가 수정되었습니다.";
+                return new BaseResponse<>(result);
+            }
+        } catch (BaseException exception) {
             return new BaseResponse<>(exception.getStatus());
         }
     }
+
     @DeleteMapping("/delete")
     public BaseResponse<String> deleteMember(@RequestParam String email, @RequestParam String password){
         try{

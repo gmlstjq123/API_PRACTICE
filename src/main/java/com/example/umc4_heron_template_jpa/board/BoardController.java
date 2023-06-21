@@ -4,12 +4,12 @@ import com.example.umc4_heron_template_jpa.board.dto.*;
 import com.example.umc4_heron_template_jpa.config.BaseException;
 import com.example.umc4_heron_template_jpa.config.BaseResponse;
 import com.example.umc4_heron_template_jpa.config.BaseResponseStatus;
+import com.example.umc4_heron_template_jpa.login.jwt.JwtService;
 import com.example.umc4_heron_template_jpa.member.Member;
 import com.example.umc4_heron_template_jpa.member.MemberRepository;
 import com.example.umc4_heron_template_jpa.member.MemberService;
 import com.example.umc4_heron_template_jpa.member.dto.DeleteMemberReq;
 import com.example.umc4_heron_template_jpa.member.dto.PatchMemberReq;
-import com.example.umc4_heron_template_jpa.utils.JwtService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -68,7 +68,7 @@ public class BoardController {
                                             @RequestParam String newTitle, @RequestParam String newContent) {
         try {
             Member member = memberRepository.findMemberByEmail(email);
-            Long userIdxByJwt = jwtService.getUserIdx();
+            Long userIdxByJwt = jwtService.getMemberIdx();
             if(!member.getId().equals(userIdxByJwt)){
                 return new BaseResponse<>(INVALID_USER_JWT);
             }

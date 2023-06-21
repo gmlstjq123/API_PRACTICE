@@ -3,13 +3,18 @@ package com.example.umc4_heron_template_jpa.member;
 import com.example.umc4_heron_template_jpa.board.Board;
 import com.example.umc4_heron_template_jpa.board.BoardRepository;
 import com.example.umc4_heron_template_jpa.config.BaseException;
+import com.example.umc4_heron_template_jpa.config.BaseResponse;
+import com.example.umc4_heron_template_jpa.login.dto.JwtResponseDTO;
+import com.example.umc4_heron_template_jpa.login.jwt.JwtProvider;
+import com.example.umc4_heron_template_jpa.login.jwt.JwtService;
 import com.example.umc4_heron_template_jpa.member.dto.*;
 import com.example.umc4_heron_template_jpa.utils.AES128;
-import com.example.umc4_heron_template_jpa.utils.JwtService;
 import com.example.umc4_heron_template_jpa.utils.Secret;
 import lombok.RequiredArgsConstructor;
+import org.springframework.http.*;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.EnableTransactionManagement;
+import org.springframework.web.client.RestTemplate;
 
 import javax.transaction.Transactional;
 import java.util.List;
@@ -25,6 +30,7 @@ public class MemberService {
     private final MemberRepository memberRepository;
     private final BoardRepository boardRepository;
     private final JwtService jwtService;
+    private final JwtProvider jwtProvider;
 
     /**
      * 유저 생성 후 DB에 저장
@@ -32,6 +38,9 @@ public class MemberService {
     public PostMemberRes createMember(PostMemberReq postMemberReq) throws BaseException {
         if(memberRepository.findByEmailCount(postMemberReq.getEmail()) >= 1) {
             throw new BaseException(POST_USERS_EXISTS_EMAIL);
+        }
+        if(postMemberReq.getPassword().isEmpty()){
+            throw new BaseException(PASSWORD_CANNOT_BE_NULL);
         }
         String pwd;
         try{
@@ -67,8 +76,13 @@ public class MemberService {
             throw new BaseException(PASSWORD_DECRYPTION_ERROR);
         }
         if(postLoginReq.getPassword().equals(password)){
-            String jwt = jwtService.createJwt(member.getId());
-            return new PostLoginRes(member.getId(),jwt);
+            JwtResponseDTO.TokenInfo tokenInfo = jwtProvider.generateToken(member.getId());
+            String accessToken = tokenInfo.getAccessToken();
+            String refreshToken = tokenInfo.getRefreshToken();
+            member.updateAccessToken(accessToken);
+            member.updateRefreshToken(refreshToken);
+            memberRepository.save(member);
+            return new PostLoginRes(member.getId(), accessToken, refreshToken);
         }
         else{
             throw new BaseException(FAILED_TO_LOGIN);
@@ -135,4 +149,48 @@ public class MemberService {
         }
         memberRepository.deleteMember(member.getEmail());
     }
+
+    //액세스 토큰, 리프레시 토큰 함께 재발급
+    public JwtResponseDTO.TokenInfo reissue(Long memberId) {
+        Member member = memberRepository.findById(memberId).get();
+        JwtResponseDTO.TokenInfo tokenInfo = jwtProvider.generateToken(memberId);
+        member.updateRefreshToken(tokenInfo.getRefreshToken());
+        memberRepository.save(member);
+        return tokenInfo;
+    }
+
+    public BaseResponse<?> logout(String accessToken) throws BaseException{
+        try {
+            // HttpHeader 생성
+            HttpHeaders httpHeaders = new HttpHeaders();
+            httpHeaders.add("Authorization", "Bearer " + accessToken);
+
+            // HttpHeader를 포함한 요청 객체 생성
+            HttpEntity<String> requestEntity = new HttpEntity<>(httpHeaders);
+
+            // RestTemplate를 이용하여 로그아웃 요청 보내기
+            RestTemplate restTemplate = new RestTemplate();
+            ResponseEntity<String> responseEntity = restTemplate.exchange(
+                    "https://kapi.kakao.com/v1/user/unlink",
+                    HttpMethod.GET,
+                    requestEntity,
+                    String.class
+            );
+
+            // 응답 확인
+            if (responseEntity.getStatusCode() == HttpStatus.OK) {
+                // 로그아웃 성공
+                String result = "로그아웃되었습니다.";
+                return new BaseResponse<>(result);
+            } else {
+                // 로그아웃 실패
+                throw new BaseException(FAILED_TO_LOGOUT);
+            }
+        } catch (Exception e) {
+            // 예외 처리
+            throw new BaseException(FAILED_TO_LOGOUT);
+        }
+    }
 }
+
+
