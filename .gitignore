@@ -33,3 +33,4 @@ out/
 /nbdist/
 /.nb-gradle/
 
+application.yml
