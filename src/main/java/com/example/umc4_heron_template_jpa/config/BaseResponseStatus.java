@@ -20,6 +20,7 @@ public enum BaseResponseStatus {
     INVALID_USER_JWT(false,2003,"권한이 없는 유저의 접근입니다."),
     EXPIRED_USER_JWT(false,2004,"만료된 JWT입니다."),
     REISSUE_TOKEN(false, 2005, "토큰이 만료되었습니다. 다시 로그인해주세요."),
+    NONE_EXIST_MEMBER(false, 2006, "존재하지 않는 사용자입니다."),
     // users
     USERS_EMPTY_USER_ID(false, 2010, "유저 아이디 값을 확인해주세요."),
     PASSWORD_CANNOT_BE_NULL(false, 2011, "비밀번호를 입력해주세요."),
@@ -60,7 +61,6 @@ public enum BaseResponseStatus {
     MODIFY_FAIL_BOARD_TITLE(false, 4015, "게시글 제목 수정에 실패하였습니다"),
 
     DELETE_FAIL_USER(false, 4016, "멤버 삭제에 실패하였습니다."),
-    CANNOT_DELETE(false, 5004, "작성된 게시글이 존재하여 멤버를 삭제하는데 실패하였습니다."),
     PASSWORD_ENCRYPTION_ERROR(false, 4011, "비밀번호 암호화에 실패하였습니다."),
     PASSWORD_DECRYPTION_ERROR(false, 4012, "비밀번호 복호화에 실패하였습니다."),
 
@@ -74,14 +74,26 @@ public enum BaseResponseStatus {
     EXCEEDED_CONTENT_LIMIT(false, 5003, "본문이 글자수 제한을 초과하였습니다."),
     BOARD_NOT_FOUND(false, 5004, "요청하신 제목의 게시글은 존재하지 않습니다."),
     SAME_TITLE_ERROR(false, 5005, "동일한 게시글이 2개 이상 존재해 수정을 진행할 수 없습니다."),
+    CANNOT_DELETE(false, 5006, "작성된 게시글이 존재하여 멤버를 삭제하는데 실패하였습니다."),
+    MEMBER_WITHOUT_PERMISSION(false, 5007, "본인의 게시글에 대해서만 수정 및 삭제가 가능합니다."),
 
     /**
      *   6000 : 회원등록 관련 오류
      */
-    NICKNAME_ERROR(false, 5000, "이미 존재하는 닉네임입니다."),
-    KAKAO_ERROR(false, 5001, "카카오 로그아웃에 실패했습니다."),
-    INTRODUCE_ERROR(false, 5002, "한줄 소개는 0~30자이어야 합니다.");
+    NICKNAME_ERROR(false, 6000, "이미 존재하는 닉네임입니다."),
+    KAKAO_ERROR(false, 6001, "카카오 로그아웃에 실패했습니다."),
+    INTRODUCE_ERROR(false, 6002, "한줄 소개는 0~30자이어야 합니다."),
 
+    /**
+     *   7000 : 댓글 관련 오류
+     */
+    NONE_EXIST_COMMENT(false, 7000, "요청하신 댓글은 존재하지 않습니다."),
+
+    /**
+     *   8000 : 토큰 관련 오류
+     */
+    FAILED_TO_UPDATE(false, 8000, "토큰을 만료시키는 작업에 실패하였습니다."),
+    FAILED_TO_REFRESH(false, 8001, "토큰 재발급에 실패하였습니다.");
     private final boolean isSuccess;
     private final int code;
     private final String message;

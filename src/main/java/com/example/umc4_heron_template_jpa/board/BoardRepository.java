@@ -7,10 +7,11 @@ import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
 import java.util.List;
+import java.util.Optional;
 
 public interface BoardRepository extends JpaRepository<Board, Long> {
     @Query("select b from Board b where b.boardId = :boardId")
-    Board findBoardById(@Param("boardId") Long boardId);
+    Optional<Board> findBoardById(@Param("boardId") Long boardId);
 
     @Query("select b from Board b where b.title = :title")
     List<Board> findBoardByTitle(@Param("title") String title);
@@ -22,6 +23,6 @@ public interface BoardRepository extends JpaRepository<Board, Long> {
     List<Board> findBoardByMemberId(@Param("id") Long id);
 
     @Modifying
-    @Query("delete from Board b where b.title = :title")
-    void deleteBoard(@Param("title") String title);
+    @Query("delete from Board b where b.boardId = :boardId")
+    void deleteBoard(@Param("boardId") Long boardId);
 }

@@ -1,4 +1,4 @@
-package com.example.umc4_heron_template_jpa.comment.dto;
+package com.example.umc4_heron_template_jpa.board.comment.dto;
 
 import lombok.AllArgsConstructor;
 import lombok.Getter;
@@ -12,9 +12,6 @@ import javax.validation.constraints.Size;
 @AllArgsConstructor
 public class PostCommentReq {
     private Long boardId;
-
-    @NotBlank(message = "이메일을 입력하세요.")
-    private String email;
 
     @NotBlank(message = "댓글을 입력하세요.")
     @Size(min=1, max=100, message = "댓글의 길이는 1~50글자까지 입력 가능합니다.")

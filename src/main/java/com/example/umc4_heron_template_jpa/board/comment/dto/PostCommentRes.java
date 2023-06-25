@@ -1,4 +1,4 @@
-package com.example.umc4_heron_template_jpa.comment.dto;
+package com.example.umc4_heron_template_jpa.board.comment.dto;
 
 import lombok.AllArgsConstructor;
 import lombok.Getter;

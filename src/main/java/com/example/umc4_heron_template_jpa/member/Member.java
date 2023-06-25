@@ -8,6 +8,7 @@ import lombok.Getter;
 import lombok.NoArgsConstructor;
 
 import javax.persistence.*;
+import java.util.ArrayList;
 import java.util.List;
 
 @Getter
@@ -33,8 +34,9 @@ public class Member extends BaseTimeEntity {
     @Column(columnDefinition = "boolean default false")
     private boolean isSocialLogin;
     @OneToMany(mappedBy = "member", cascade = CascadeType.ALL, orphanRemoval = true)
-    private List<Board> boards;
-
+    private List<Board> boards = new ArrayList<>();
+    @OneToMany(mappedBy = "member", cascade = CascadeType.ALL, orphanRemoval = true)
+    private List<Board> comments = new ArrayList<>();
     public Member createMember(String email, String nickName, String password){
         this.email = email;
         this.nickName= nickName;

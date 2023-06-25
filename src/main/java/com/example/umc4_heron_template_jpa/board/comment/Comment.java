@@ -1,4 +1,4 @@
-package com.example.umc4_heron_template_jpa.comment;
+package com.example.umc4_heron_template_jpa.board.comment;
 
 import com.example.umc4_heron_template_jpa.board.Board;
 import com.example.umc4_heron_template_jpa.member.Member;

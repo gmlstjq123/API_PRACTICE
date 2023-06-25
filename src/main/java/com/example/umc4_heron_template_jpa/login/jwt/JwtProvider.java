@@ -1,7 +1,8 @@
 package com.example.umc4_heron_template_jpa.login.jwt;
 
+import com.example.umc4_heron_template_jpa.config.BaseException;
+import com.example.umc4_heron_template_jpa.config.BaseResponseStatus;
 import com.example.umc4_heron_template_jpa.login.dto.JwtResponseDTO;
-import com.example.umc4_heron_template_jpa.member.Member;
 import com.example.umc4_heron_template_jpa.utils.Secret;
 import io.jsonwebtoken.*;
 import io.jsonwebtoken.io.Decoders;
@@ -10,13 +11,18 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
 
 import java.security.Key;
+import java.time.Instant;
 import java.util.Date;
+
+import static com.example.umc4_heron_template_jpa.config.BaseResponseStatus.FAILED_TO_UPDATE;
+import static com.example.umc4_heron_template_jpa.config.BaseResponseStatus.INVALID_JWT;
 
 @Slf4j
 @Component
 public class JwtProvider {
     private static final long REFRESH_TOKEN_EXPIRE_TIME = 14 * 24 * 60 * 60 * 1000L; //refreshToken 유효기간 14일
-    private static final long ACCESS_TOKEN_EXPIRE_TIME = 1 * 6 * 60 * 60 * 1000L; //accessToken 유효기간 6시간
+    // private static final long ACCESS_TOKEN_EXPIRE_TIME = 1 * 6 * 60 * 60 * 1000L; //accessToken 유효기간 6시간
+    private static final long ACCESS_TOKEN_EXPIRE_TIME = 60 * 1000L; //유효기간 1분, refrshToken 테스트를 위해 사용
     private static final String BEARER_TYPE = "Bearer";
 
     private Key key = Keys.hmacShaKeyFor(Decoders.BASE64URL.decode(Secret.JWT_SECRET_KEY));
@@ -137,4 +143,32 @@ public class JwtProvider {
         return (expiration.getTime() - now);
     }
 
+    /** 토큰을 의도적으로 만료시키는 메서드 **/
+    public String makeInvalidToken(String token) throws BaseException {
+        if(validateToken(token)){
+            String updatedToken = updateExpirationCurrentTime(token);
+            return updatedToken;
+        }
+        else {
+            throw new BaseException(INVALID_JWT);
+        }
+    }
+
+    /** 만료 시간을 현재 시간으로 업데이트 하는 메서드 **/
+    private String updateExpirationCurrentTime(String token) throws BaseException{
+        try{
+            Claims claims = Jwts.parser()
+                    .setSigningKey(key)
+                    .parseClaimsJws(token)
+                    .getBody();
+            claims.setExpiration(Date.from(Instant.now()));
+
+            return Jwts.builder()
+                    .setClaims(claims)
+                    .signWith(SignatureAlgorithm.HS256, key)
+                    .compact();
+        } catch (Exception e) {
+            throw new BaseException(FAILED_TO_UPDATE);
+        }
+    }
 }

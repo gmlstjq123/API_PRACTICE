@@ -57,18 +57,5 @@ public class KakaoController {
             return new BaseResponse<>(tokenInfo);
         }
     }
-
-
-    //카카오 로그아웃 코드
-    @GetMapping("/oauth/kakaologout")
-    @ResponseBody
-    public BaseResponse<?> kakaoLogout(@RequestParam("state") String accessToken)
-    {
-        try{
-            return memberService.logout(accessToken);
-        } catch(Exception e){
-            return new BaseResponse<>(BaseResponseStatus.KAKAO_ERROR);
-        }
-    }
 }
 

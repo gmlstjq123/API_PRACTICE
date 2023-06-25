@@ -1,18 +1,15 @@
 package com.example.umc4_heron_template_jpa.board;
 
-import com.example.umc4_heron_template_jpa.comment.Comment;
+import com.example.umc4_heron_template_jpa.board.comment.Comment;
+import com.example.umc4_heron_template_jpa.board.photo.PostPhoto;
 import com.example.umc4_heron_template_jpa.member.Member;
 import com.example.umc4_heron_template_jpa.utils.BaseTimeEntity;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
-import net.bytebuddy.dynamic.loading.InjectionClassLoader;
-import org.springframework.data.annotation.CreatedDate;
-import org.springframework.data.annotation.LastModifiedDate;
 
 import javax.persistence.*;
-import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -35,6 +32,12 @@ public class Board extends BaseTimeEntity {
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "member_id")
     private Member member;
+    // 댓글과 관계 매핑
+    @OneToMany(mappedBy = "board", cascade = {CascadeType.ALL}, orphanRemoval = true)
+    private List<Comment> commentList = new ArrayList<>();
+    // 게시사진과 관계매핑
+    @OneToMany(mappedBy = "board", cascade = {CascadeType.ALL}, orphanRemoval = true)
+    private List<PostPhoto> photoList = new ArrayList<>();
 
     public void updateBoard(String title, String content){
         this.title = title;
@@ -43,4 +46,9 @@ public class Board extends BaseTimeEntity {
     // 댓글과 관계 매핑
     @OneToMany(mappedBy = "board", cascade = CascadeType.ALL)
     private List<Comment> comments = new ArrayList<>();
+
+    public void addPhotoList(PostPhoto postPhoto){
+        photoList.add(postPhoto);
+        postPhoto.createBoard(this);
+    }
 }

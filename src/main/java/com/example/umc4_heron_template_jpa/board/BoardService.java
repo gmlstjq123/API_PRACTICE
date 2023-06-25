@@ -3,72 +3,110 @@ package com.example.umc4_heron_template_jpa.board;
 import com.example.umc4_heron_template_jpa.board.dto.DeleteBoardReq;
 import com.example.umc4_heron_template_jpa.board.dto.PatchBoardReq;
 import com.example.umc4_heron_template_jpa.board.dto.PostBoardReq;
-import com.example.umc4_heron_template_jpa.board.dto.PostBoardRes;
+import com.example.umc4_heron_template_jpa.board.photo.PostPhoto;
+import com.example.umc4_heron_template_jpa.board.photo.PostPhotoRepository;
+import com.example.umc4_heron_template_jpa.board.photo.PostPhotoService;
 import com.example.umc4_heron_template_jpa.config.BaseException;
+import com.example.umc4_heron_template_jpa.config.BaseResponseStatus;
 import com.example.umc4_heron_template_jpa.member.Member;
 import com.example.umc4_heron_template_jpa.member.MemberRepository;
-import com.example.umc4_heron_template_jpa.member.dto.DeleteMemberReq;
-import com.example.umc4_heron_template_jpa.member.dto.PatchMemberReq;
-import com.example.umc4_heron_template_jpa.member.dto.PostMemberRes;
-import com.example.umc4_heron_template_jpa.utils.AES128;
-import com.example.umc4_heron_template_jpa.utils.Secret;
+import com.example.umc4_heron_template_jpa.utils.S3Service;
+import com.example.umc4_heron_template_jpa.utils.UtilService;
+import com.example.umc4_heron_template_jpa.utils.dto.GetS3Res;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
+import org.springframework.web.multipart.MultipartFile;
 
 import javax.transaction.Transactional;
 
+import java.util.ArrayList;
 import java.util.List;
-import java.util.Optional;
 
-import static com.example.umc4_heron_template_jpa.config.BaseResponseStatus.*;
 @Service
 @RequiredArgsConstructor
 public class BoardService {
     private final BoardRepository boardRepository;
     private final MemberRepository memberRepository;
+    private final PostPhotoRepository postPhotoRepository;
+    private final UtilService utilService;
+    private final S3Service s3Service;
+    private final PostPhotoService postPhotoService;
     @Transactional
     public void save(Board board){
         boardRepository.save(board);
     }
+
     @Transactional
-    public PostBoardRes createBoard(PostBoardReq postBoardReq) throws BaseException {
-        Member member = memberRepository.findMemberByEmail(postBoardReq.getEmail());
-        if (member == null) {
-            throw new BaseException(POST_USERS_NONE_EXISTS_EMAIL);
-        }
-        Board board;
-        board = Board.builder()
+    public String createBoard(Long memberId, PostBoardReq postBoardReq, List<MultipartFile> multipartFiles) throws BaseException {
+        Member member = utilService.findByMemberIdWithValidation(memberId);
+        Board board = Board.builder()
                 .title(postBoardReq.getTitle())
                 .content(postBoardReq.getContent())
+                .photoList(new ArrayList<>())
                 .member(member)
+                .commentList(new ArrayList<>())
                 .build();
         save(board);
-        return new PostBoardRes(member.getNickName(), board.getTitle(), board.getContent());
+
+        if(multipartFiles != null) {
+            List<GetS3Res> imgUrls = s3Service.uploadFile(multipartFiles);
+            postPhotoService.saveAllPostPhotoByBoard(imgUrls, board);
+        }
+
+        return "boardId: " + board.getBoardId() + "인 게시글을 생성했습니다.";
     }
 
     @Transactional
     public Board getBoard(Long boardId) throws BaseException{
-        Board board = boardRepository.findBoardById(boardId);
-        if(board == null){
-            throw new BaseException(NONE_EXIST_BOARD);
-        }
+        Board board = utilService.findByBoardIdWithValidation(boardId);
         return board;
     }
 
     @Transactional
-    public void deleteBoard(String title) throws BaseException{
-        List<Board> deleteBoards = boardRepository.findBoardByTitle(title);
-        if(deleteBoards.size()==0){
-            throw new BaseException(BOARD_NOT_FOUND);
+    public String deleteBoard(DeleteBoardReq deleteBoardReq) throws BaseException {
+        Board deleteBoard = utilService.findByBoardIdWithValidation(deleteBoardReq.getBoardId());
+        Member writer = deleteBoard.getMember();
+        Member visitor = utilService.findByMemberIdWithValidation(deleteBoardReq.getMemberId());
+        if(writer.getId() == visitor.getId()) {
+            // S3에 업로드된 파일을 삭제하는 명령
+            List<PostPhoto> allByBoardId = postPhotoService.findAllByBoardId(deleteBoard.getBoardId());
+            postPhotoService.deleteAllPostPhotos(allByBoardId);
+            // PostPhotoRepository에서 삭제하는 명령
+            List<Long> ids = postPhotoService.findAllId(deleteBoard.getBoardId());
+            postPhotoService.deleteAllPostPhotoByBoard(ids);
+            postPhotoRepository.deletePostPhotoByBoardId(deleteBoardReq.getBoardId());
+            boardRepository.deleteBoard(deleteBoard.getBoardId());
+            String result = "요청하신 게시글에 대한 삭제가 완료되었습니다.";
+            return result;
         }
-        for (Board deleteBoard : deleteBoards) {
-            boardRepository.deleteBoard(deleteBoard.getTitle());
+        else {
+           throw new BaseException(BaseResponseStatus.MEMBER_WITHOUT_PERMISSION);
         }
     }
 
     @Transactional
-    public void modifyBoard(PatchBoardReq patchBoardReq) {
-        Board board = boardRepository.getReferenceById(patchBoardReq.getBoardId());
-        board.updateBoard(patchBoardReq.getTitle(), patchBoardReq.getContent());
+    public String modifyBoard(Long memberId, Long boardId, PatchBoardReq patchBoardReq,
+                              List<MultipartFile> multipartFiles) throws BaseException {
+        Board board = utilService.findByBoardIdWithValidation(boardId);
+        Member writer = board.getMember();
+        Member visitor = utilService.findByMemberIdWithValidation(memberId);
+        if(writer.getId() == visitor.getId()){
+            board.updateBoard(patchBoardReq.getTitle(), patchBoardReq.getContent());
+            //사진 업데이트, 지우고 다시 저장!
+            List<PostPhoto> allByBoardId = postPhotoService.findAllByBoardId(boardId);
+            postPhotoService.deleteAllPostPhotos(allByBoardId);
+            List<Long> ids = postPhotoService.findAllId(board.getBoardId());
+            postPhotoService.deleteAllPostPhotoByBoard(ids);
+
+            if(multipartFiles != null) {
+                List<GetS3Res> imgUrls = s3Service.uploadFile(multipartFiles);
+                postPhotoService.saveAllPostPhotoByBoard(imgUrls, board);
+            }
+
+            return "boardId " + board.getBoardId() + "의 게시글을 수정했습니다.";
+        }
+        else {
+            throw new BaseException(BaseResponseStatus.MEMBER_WITHOUT_PERMISSION);
+        }
     }
 }

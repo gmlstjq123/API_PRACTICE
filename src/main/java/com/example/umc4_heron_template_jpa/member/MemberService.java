@@ -10,6 +10,7 @@ import com.example.umc4_heron_template_jpa.login.jwt.JwtService;
 import com.example.umc4_heron_template_jpa.member.dto.*;
 import com.example.umc4_heron_template_jpa.utils.AES128;
 import com.example.umc4_heron_template_jpa.utils.Secret;
+import com.example.umc4_heron_template_jpa.utils.UtilService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.*;
 import org.springframework.stereotype.Service;
@@ -31,10 +32,12 @@ public class MemberService {
     private final BoardRepository boardRepository;
     private final JwtService jwtService;
     private final JwtProvider jwtProvider;
+    private final UtilService utilService;
 
     /**
      * 유저 생성 후 DB에 저장
      */
+    @Transactional
     public PostMemberRes createMember(PostMemberReq postMemberReq) throws BaseException {
         if(memberRepository.findByEmailCount(postMemberReq.getEmail()) >= 1) {
             throw new BaseException(POST_USERS_EXISTS_EMAIL);
@@ -65,10 +68,7 @@ public class MemberService {
      * 유저 로그인
      */
     public PostLoginRes login(PostLoginReq postLoginReq) throws BaseException {
-        Member member = memberRepository.findMemberByEmail(postLoginReq.getEmail());
-        if(member == null){
-            throw new BaseException(MEMBER_NOT_FOUND);
-        }
+        Member member = utilService.findByMemberIdWithValidation(postLoginReq.getMemberId());
         String password;
         try{
             password = new AES128(Secret.USER_INFO_PASSWORD_KEY).decrypt(member.getPassword()); // 복호화
@@ -89,6 +89,24 @@ public class MemberService {
         }
     }
 
+    public String logout(String accessToken) throws BaseException {
+        try{
+            if (accessToken == null || accessToken.isEmpty()) {
+                throw new BaseException(INVALID_JWT);
+            }
+            Member member = utilService.findByAccessTokenWithValidation(accessToken);
+            if(!jwtProvider.validateToken(accessToken)) {
+                throw new BaseException(INVALID_JWT);
+            }
+            member.updateRefreshToken("");
+            member.updateAccessToken("");
+            memberRepository.save(member);
+            String result = "로그아웃 되었습니다";
+            return result;
+        } catch(Exception ignored) {
+            throw new BaseException(FAILED_TO_LOGOUT);
+        }
+    }
     /**
      * 모든 회원 조회
      */
@@ -129,25 +147,15 @@ public class MemberService {
     }
 
     @Transactional
-    public void deleteMember(DeleteMemberReq deleteMemberReq) throws BaseException{
-        Member member = memberRepository.findMemberByEmail(deleteMemberReq.getEmail());
-        if(member == null){
-            throw new BaseException(MEMBER_NOT_FOUND);
-        }
-        String pwd;
-        try{
-            pwd = new AES128(Secret.USER_INFO_PASSWORD_KEY).decrypt(member.getPassword());
-        } catch(Exception ignored){
-            throw new BaseException(PASSWORD_DECRYPTION_ERROR);
-        }
-        if(!deleteMemberReq.getPassword().equals(pwd)){
-            throw new BaseException(INCORRECT_PASSWORD);
-        }
+    public String deleteMember(Long memberId) throws BaseException{
+        Member member = utilService.findByMemberIdWithValidation(memberId);
         List<Board> boards = boardRepository.findBoardByMemberId(member.getId());
         if(!boards.isEmpty()){
             throw new BaseException(CANNOT_DELETE);
         }
         memberRepository.deleteMember(member.getEmail());
+        String result = "요청하신 회원에 대한 삭제가 완료되었습니다.";
+        return result;
     }
 
     //액세스 토큰, 리프레시 토큰 함께 재발급
@@ -159,7 +167,7 @@ public class MemberService {
         return tokenInfo;
     }
 
-    public BaseResponse<?> logout(String accessToken) throws BaseException{
+    public String socialLogout(String accessToken) throws BaseException{
         // HttpHeader 생성
         HttpHeaders httpHeaders = new HttpHeaders();
         httpHeaders.add("Authorization", "Bearer " + accessToken);
@@ -180,7 +188,11 @@ public class MemberService {
         if (responseEntity.getStatusCode() == HttpStatus.OK) {
             // 로그아웃 성공
             String result = "로그아웃되었습니다.";
-            return new BaseResponse<>(result);
+            Member member = utilService.findByAccessTokenWithValidation(accessToken);
+            member.updateAccessToken("");
+            member.updateRefreshToken("");
+            memberRepository.save(member);
+            return result;
         }
         else {
             // 로그아웃 실패
