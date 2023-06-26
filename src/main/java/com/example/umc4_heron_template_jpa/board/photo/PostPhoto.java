@@ -25,7 +25,7 @@ public class PostPhoto {
     private Board board;
 
     //==객체 생성 메서드==//
-    public void createBoard(Board board){
+    public void setBoard(Board board){
         this.board = board;
     }
 

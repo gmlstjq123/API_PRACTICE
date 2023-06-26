@@ -69,6 +69,10 @@ public class MemberService {
      */
     public PostLoginRes login(PostLoginReq postLoginReq) throws BaseException {
         Member member = utilService.findByMemberIdWithValidation(postLoginReq.getMemberId());
+        Member checkMember = memberRepository.findMemberByEmail(postLoginReq.getEmail());
+        if(member!= checkMember) {
+            throw new BaseException(INVALID_MEMBER_ID);
+        }
         String password;
         try{
             password = new AES128(Secret.USER_INFO_PASSWORD_KEY).decrypt(member.getPassword()); // 복호화
@@ -89,24 +93,6 @@ public class MemberService {
         }
     }
 
-    public String logout(String accessToken) throws BaseException {
-        try{
-            if (accessToken == null || accessToken.isEmpty()) {
-                throw new BaseException(INVALID_JWT);
-            }
-            Member member = utilService.findByAccessTokenWithValidation(accessToken);
-            if(!jwtProvider.validateToken(accessToken)) {
-                throw new BaseException(INVALID_JWT);
-            }
-            member.updateRefreshToken("");
-            member.updateAccessToken("");
-            memberRepository.save(member);
-            String result = "로그아웃 되었습니다";
-            return result;
-        } catch(Exception ignored) {
-            throw new BaseException(FAILED_TO_LOGOUT);
-        }
-    }
     /**
      * 모든 회원 조회
      */
@@ -167,6 +153,23 @@ public class MemberService {
         return tokenInfo;
     }
 
+    public String logout(Long memberId, String accessToken) throws BaseException {
+        Member logoutMember = utilService.findByMemberIdWithValidation(memberId);
+        String invalidToken = jwtProvider.makeInvalidToken(accessToken);
+        String invalidRefToken = jwtProvider.makeInvalidToken(logoutMember.getRefreshToken());
+        if(invalidToken != null && invalidRefToken != null){
+            // 두 토큰을 모두 만료시키는데 성공한 경우
+            logoutMember.updateAccessToken(invalidToken);
+            logoutMember.updateRefreshToken(invalidRefToken);
+            memberRepository.save(logoutMember);
+            String result = "로그아웃 되었습니다.";
+            return result;
+        }
+        else {
+            // 토큰을 만료시키는데 실패한 경우
+            throw new BaseException(FAILED_TO_LOGOUT);
+        }
+    }
     public String socialLogout(String accessToken) throws BaseException{
         // HttpHeader 생성
         HttpHeaders httpHeaders = new HttpHeaders();
@@ -187,16 +190,12 @@ public class MemberService {
         // 응답 확인
         if (responseEntity.getStatusCode() == HttpStatus.OK) {
             // 로그아웃 성공
-            String result = "로그아웃되었습니다.";
-            Member member = utilService.findByAccessTokenWithValidation(accessToken);
-            member.updateAccessToken("");
-            member.updateRefreshToken("");
-            memberRepository.save(member);
+            String result = "로그아웃 되었습니다.";
             return result;
         }
         else {
             // 로그아웃 실패
-            throw new BaseException(FAILED_TO_LOGOUT);
+            throw new BaseException(KAKAO_ERROR);
         }
     }
 }

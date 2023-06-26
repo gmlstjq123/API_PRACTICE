@@ -22,7 +22,7 @@ import static com.example.umc4_heron_template_jpa.config.BaseResponseStatus.INVA
 public class JwtProvider {
     private static final long REFRESH_TOKEN_EXPIRE_TIME = 14 * 24 * 60 * 60 * 1000L; //refreshToken 유효기간 14일
     // private static final long ACCESS_TOKEN_EXPIRE_TIME = 1 * 6 * 60 * 60 * 1000L; //accessToken 유효기간 6시간
-    private static final long ACCESS_TOKEN_EXPIRE_TIME = 60 * 1000L; //유효기간 1분, refrshToken 테스트를 위해 사용
+    private static final long ACCESS_TOKEN_EXPIRE_TIME = 10 * 1000L; //유효기간 1분, refrshToken 테스트를 위해 사용
     private static final String BEARER_TYPE = "Bearer";
 
     private Key key = Keys.hmacShaKeyFor(Decoders.BASE64URL.decode(Secret.JWT_SECRET_KEY));
@@ -130,6 +130,20 @@ public class JwtProvider {
         return false;
     }
 
+    public boolean validateTokenWithoutExpiration(String token) {
+        try {
+            Jwts.parserBuilder().setSigningKey(key).build().parseClaimsJws(token);
+            return true;
+        } catch (io.jsonwebtoken.security.SecurityException | MalformedJwtException e) {
+            log.info("Invalid JWT Token", e);
+        } catch (UnsupportedJwtException e) {
+            log.info("Unsupported JWT Token", e);
+        } catch (IllegalArgumentException e) {
+            log.info("JWT claims string is empty.", e);
+        }
+        return false;
+    }
+
     //==토큰 앞 부분('Bearer') 제거 메소드==//
     private String BearerRemove(String token) {
         return token.substring("Bearer ".length());
@@ -145,7 +159,10 @@ public class JwtProvider {
 
     /** 토큰을 의도적으로 만료시키는 메서드 **/
     public String makeInvalidToken(String token) throws BaseException {
-        if(validateToken(token)){
+        if(validateTokenWithoutExpiration(token)){ // 토큰 만료는 제외하고 토큰의 유효성을 평가
+            if(getExpiration(token) <= 0) { // 이미 만료된 토큰이라면
+                return token; // 굳이 다른 처리해줄 필요 없이 바로 리턴
+            }
             String updatedToken = updateExpirationCurrentTime(token);
             return updatedToken;
         }

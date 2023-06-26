@@ -35,7 +35,7 @@ public class Board extends BaseTimeEntity {
     // 댓글과 관계 매핑
     @OneToMany(mappedBy = "board", cascade = {CascadeType.ALL}, orphanRemoval = true)
     private List<Comment> commentList = new ArrayList<>();
-    // 게시사진과 관계매핑
+    // 게시 사진과 관계매핑
     @OneToMany(mappedBy = "board", cascade = {CascadeType.ALL}, orphanRemoval = true)
     private List<PostPhoto> photoList = new ArrayList<>();
 
@@ -49,6 +49,6 @@ public class Board extends BaseTimeEntity {
 
     public void addPhotoList(PostPhoto postPhoto){
         photoList.add(postPhoto);
-        postPhoto.createBoard(this);
+        postPhoto.setBoard(this);
     }
 }

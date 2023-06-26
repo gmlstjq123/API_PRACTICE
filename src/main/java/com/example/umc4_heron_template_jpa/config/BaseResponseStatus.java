@@ -23,6 +23,7 @@ public enum BaseResponseStatus {
     NONE_EXIST_MEMBER(false, 2006, "존재하지 않는 사용자입니다."),
     // users
     USERS_EMPTY_USER_ID(false, 2010, "유저 아이디 값을 확인해주세요."),
+    INVALID_MEMBER_ID(false, 2010, "멤버 아이디와 이메일이 일치하지 않습니다."),
     PASSWORD_CANNOT_BE_NULL(false, 2011, "비밀번호를 입력해주세요."),
     // [POST] /users
     POST_USERS_EMPTY_EMAIL(false, 2015, "이메일을 입력해주세요."),

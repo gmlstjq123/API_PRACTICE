@@ -65,7 +65,7 @@ public class JwtService {
             // access token이 만료된 경우
             Member member = memberRepository.findMemberByAccessToken(accessToken).orElse(null);
             if (member == null) {
-                throw new BaseException(EXPIRED_USER_JWT);
+                throw new BaseException(INVALID_JWT);
             }
 
             // 4. Refresh Token을 사용하여 새로운 Access Token 발급

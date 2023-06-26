@@ -2,6 +2,7 @@ package com.example.umc4_heron_template_jpa.member;
 
 import com.example.umc4_heron_template_jpa.config.BaseException;
 import com.example.umc4_heron_template_jpa.config.BaseResponse;
+import com.example.umc4_heron_template_jpa.config.BaseResponseStatus;
 import com.example.umc4_heron_template_jpa.login.jwt.JwtProvider;
 import com.example.umc4_heron_template_jpa.login.jwt.JwtService;
 import com.example.umc4_heron_template_jpa.login.kakao.KakaoService;
@@ -54,27 +55,16 @@ public class MemberController {
     @PostMapping("/log-out")
     public BaseResponse<String> logoutMember() {
         try {
-            String accessToken = jwtService.getJwt();
             Long memberId = jwtService.getMemberIdx();
             Member logoutMember = utilService.findByMemberIdWithValidation(memberId);
-            String invalidToken = jwtProvider.makeInvalidToken(accessToken);
-            String invalidRefToken = jwtProvider.makeInvalidToken(logoutMember.getRefreshToken());
-            if(invalidToken != null && invalidRefToken != null){
-                // 두 토큰을 모두 만료시키는데 성공한 경우
-                logoutMember.updateAccessToken(invalidToken);
-                logoutMember.updateRefreshToken(invalidRefToken);
-                memberRepository.save(logoutMember);
-                String result = "로그아웃 되었습니다.";
-                return new BaseResponse<>(result);
-            }
-            else {
-                // 토큰을 만료시키는데 실패한 경우
-                return new BaseResponse<>(FAILED_TO_LOGOUT);
-            }
+            String accessToken = logoutMember.getAccessToken();
+            String result = memberService.logout(memberId, accessToken);
+            return new BaseResponse<>(result);
         } catch (BaseException exception) {
             return new BaseResponse<>(exception.getStatus());
         }
     }
+
 
 
     /**

@@ -4,6 +4,7 @@ import com.example.umc4_heron_template_jpa.config.BaseResponse;
 import com.example.umc4_heron_template_jpa.config.BaseResponseStatus;
 import com.example.umc4_heron_template_jpa.login.dto.JwtResponseDTO;
 import com.example.umc4_heron_template_jpa.login.jwt.JwtProvider;
+import com.example.umc4_heron_template_jpa.login.jwt.JwtService;
 import com.example.umc4_heron_template_jpa.member.Member;
 import com.example.umc4_heron_template_jpa.member.MemberRepository;
 import com.example.umc4_heron_template_jpa.member.MemberService;
@@ -24,6 +25,7 @@ public class KakaoController {
     private final MemberService memberService;
     private final MemberRepository memberRepository;
     private final JwtProvider jwtProvider;
+    private final JwtService jwtService;
 
     //카카오 로그인 코드
     @ResponseBody
@@ -38,12 +40,9 @@ public class KakaoController {
             kakaoMember.updateEmail(memberEmail);
             kakaoMember.updateNickName(memberNickName);
             kakaoMember.updateIsSocialLogin();
-            JwtResponseDTO.TokenInfo tokenInfo = JwtResponseDTO.TokenInfo.builder()
-                    .accessToken(accessToken)
-                    .refreshToken(refreshToken)
-                    .build();
-            kakaoMember.updateAccessToken(accessToken);
-            kakaoMember.updateRefreshToken(refreshToken);
+            JwtResponseDTO.TokenInfo tokenInfo = jwtProvider.generateToken(kakaoMember.getId());
+            kakaoMember.updateAccessToken(tokenInfo.getAccessToken());
+            kakaoMember.updateRefreshToken(tokenInfo.getRefreshToken());
             memberRepository.save(kakaoMember);
             return new BaseResponse<>(tokenInfo);
         }
@@ -52,9 +51,24 @@ public class KakaoController {
             Member member = findMember.get();
             JwtResponseDTO.TokenInfo tokenInfo = jwtProvider.generateToken(member.getId());
             member.updateRefreshToken(tokenInfo.getRefreshToken());
-            member.updateIsSocialLogin();
             memberRepository.save(member);
             return new BaseResponse<>(tokenInfo);
+        }
+    }
+
+    // 카카오 소셜 로그아웃
+    // 하지만 실제로 사용할 일은 없다. 카카오에서 받은 접근 토큰과 재발급 토큰은 모두 우리의 방식으로 다시 generate하였기 때문에
+    // 카카오에서 이를 해석할 수 없다. 따라서 소셜로그인의 경우에도 Member Controller의 로그아웃 API를 사용해야 한다.
+    @PostMapping("/oauth/kakao-logout")
+    @ResponseBody
+    public BaseResponse<?> kakaoLogout()
+    {
+        try{
+            String accessToken = jwtService.getJwt();
+            String result = memberService.socialLogout(accessToken);
+            return new BaseResponse<>(result);
+        } catch(Exception e){
+            return new BaseResponse<>(BaseResponseStatus.KAKAO_ERROR);
         }
     }
 }
