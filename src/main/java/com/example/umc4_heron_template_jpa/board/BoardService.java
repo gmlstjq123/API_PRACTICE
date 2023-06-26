@@ -49,8 +49,8 @@ public class BoardService {
         save(board);
 
         if(multipartFiles != null) {
-            List<GetS3Res> imgUrls = s3Service.uploadFile(multipartFiles);
-            postPhotoService.saveAllPostPhotoByBoard(imgUrls, board);
+            List<GetS3Res> getS3ResList = s3Service.uploadFile(multipartFiles);
+            postPhotoService.saveAllPostPhotoByBoard(getS3ResList, board);
         }
 
         return "boardId: " + board.getBoardId() + "인 게시글을 생성했습니다.";
@@ -74,7 +74,10 @@ public class BoardService {
             // PostPhotoRepository에서 삭제하는 명령
             List<Long> ids = postPhotoService.findAllId(deleteBoard.getBoardId());
             postPhotoService.deleteAllPostPhotoByBoard(ids);
-            postPhotoRepository.deletePostPhotoByBoardId(deleteBoardReq.getBoardId());
+            // 아래의 JPQL 쿼리로 한 번에 PostPhoto들을 삭제하는 것도 가능.
+            // postPhotoRepository.deletePostPhotoByBoardId(deleteBoardReq.getBoardId());
+
+            // 게시글을 삭제하는 명령
             boardRepository.deleteBoard(deleteBoard.getBoardId());
             String result = "요청하신 게시글에 대한 삭제가 완료되었습니다.";
             return result;
