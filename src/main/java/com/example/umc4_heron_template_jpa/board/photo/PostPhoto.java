@@ -28,5 +28,4 @@ public class PostPhoto {
     public void setBoard(Board board){
         this.board = board;
     }
-
 }

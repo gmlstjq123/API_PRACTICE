@@ -2,14 +2,17 @@ package com.example.umc4_heron_template_jpa.member;
 
 import com.example.umc4_heron_template_jpa.config.BaseException;
 import com.example.umc4_heron_template_jpa.config.BaseResponse;
-import com.example.umc4_heron_template_jpa.config.BaseResponseStatus;
 import com.example.umc4_heron_template_jpa.login.jwt.JwtProvider;
 import com.example.umc4_heron_template_jpa.login.jwt.JwtService;
 import com.example.umc4_heron_template_jpa.login.kakao.KakaoService;
 import com.example.umc4_heron_template_jpa.member.dto.*;
+import com.example.umc4_heron_template_jpa.member.profile.ProfileService;
+import com.example.umc4_heron_template_jpa.member.profile.dto.PostProfileReq;
 import com.example.umc4_heron_template_jpa.utils.UtilService;
 import lombok.RequiredArgsConstructor;
+import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.multipart.MultipartFile;
 
 import java.util.List;
 
@@ -23,7 +26,7 @@ public class MemberController {
     private final MemberService memberService;
     private final MemberRepository memberRepository;
     private final JwtService jwtService;
-    private final KakaoService kakaoService;
+    private final ProfileService profileService;
     private final JwtProvider jwtProvider;
     private final UtilService utilService;
     /**
@@ -65,8 +68,6 @@ public class MemberController {
         }
     }
 
-
-
     /**
      * 회원 조회
      * nickname이 파라미터에 없을 경우 모두 조회
@@ -90,18 +91,31 @@ public class MemberController {
 
 
     /**
-     * 유저 닉네임 변경
+     * 멤버 닉네임 변경
      */
     @PatchMapping("/update")
-    public BaseResponse<String> modifyUserName(@RequestParam String nickName) {
+    public BaseResponse<String> modifyMemberName(@RequestParam String nickName) {
         // PostMan에서 Headers에 Authorization필드를 추가하고, 로그인할 때 받은 jwt 토큰을 입력해야 실행이 됩니다.
         try {
             Long memberId = jwtService.getMemberIdx();
             Member member = utilService.findByMemberIdWithValidation(memberId);
             PatchMemberReq patchMemberReq = new PatchMemberReq(member.getId(), nickName);
-            memberService.modifyUserName(patchMemberReq);
+            memberService.modifyMemberName(patchMemberReq);
             String result = "회원정보가 수정되었습니다.";
             return new BaseResponse<>(result);
+        } catch (BaseException exception) {
+            return new BaseResponse<>(exception.getStatus());
+        }
+    }
+
+    /**
+     * 멤버 프로필 변경
+     */
+    @PatchMapping("/update-profile")
+    public BaseResponse<String> modifyMemberProfile(@RequestPart(value = "image", required = false) MultipartFile multipartFile) {
+        try {
+            Long memberId = jwtService.getMemberIdx();
+            return new BaseResponse<>(memberService.modifyProfile(memberId, multipartFile));
         } catch (BaseException exception) {
             return new BaseResponse<>(exception.getStatus());
         }

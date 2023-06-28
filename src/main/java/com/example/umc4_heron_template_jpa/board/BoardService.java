@@ -7,12 +7,13 @@ import com.example.umc4_heron_template_jpa.board.photo.PostPhoto;
 import com.example.umc4_heron_template_jpa.board.photo.PostPhotoRepository;
 import com.example.umc4_heron_template_jpa.board.photo.PostPhotoService;
 import com.example.umc4_heron_template_jpa.config.BaseException;
+import com.example.umc4_heron_template_jpa.config.BaseResponse;
 import com.example.umc4_heron_template_jpa.config.BaseResponseStatus;
 import com.example.umc4_heron_template_jpa.member.Member;
 import com.example.umc4_heron_template_jpa.member.MemberRepository;
 import com.example.umc4_heron_template_jpa.utils.S3Service;
 import com.example.umc4_heron_template_jpa.utils.UtilService;
-import com.example.umc4_heron_template_jpa.utils.dto.GetS3Res;
+import com.example.umc4_heron_template_jpa.board.photo.dto.GetS3Res;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
@@ -90,26 +91,30 @@ public class BoardService {
     @Transactional
     public String modifyBoard(Long memberId, Long boardId, PatchBoardReq patchBoardReq,
                               List<MultipartFile> multipartFiles) throws BaseException {
-        Board board = utilService.findByBoardIdWithValidation(boardId);
-        Member writer = board.getMember();
-        Member visitor = utilService.findByMemberIdWithValidation(memberId);
-        if(writer.getId() == visitor.getId()){
-            board.updateBoard(patchBoardReq.getTitle(), patchBoardReq.getContent());
-            //사진 업데이트, 지우고 다시 저장!
-            List<PostPhoto> allByBoardId = postPhotoService.findAllByBoardId(boardId);
-            postPhotoService.deleteAllPostPhotos(allByBoardId);
-            List<Long> ids = postPhotoService.findAllId(board.getBoardId());
-            postPhotoService.deleteAllPostPhotoByBoard(ids);
+        try {
+            Board board = utilService.findByBoardIdWithValidation(boardId);
+            Member writer = board.getMember();
+            Member visitor = utilService.findByMemberIdWithValidation(memberId);
+            if(writer.getId() == visitor.getId()){
+                board.updateBoard(patchBoardReq.getTitle(), patchBoardReq.getContent());
+                //사진 업데이트, 지우고 다시 저장!
+                List<PostPhoto> allByBoardId = postPhotoService.findAllByBoardId(boardId);
+                postPhotoService.deleteAllPostPhotos(allByBoardId);
+                List<Long> ids = postPhotoService.findAllId(board.getBoardId());
+                postPhotoService.deleteAllPostPhotoByBoard(ids);
 
-            if(multipartFiles != null) {
-                List<GetS3Res> imgUrls = s3Service.uploadFile(multipartFiles);
-                postPhotoService.saveAllPostPhotoByBoard(imgUrls, board);
+                if(multipartFiles != null) {
+                    List<GetS3Res> getS3ResList = s3Service.uploadFile(multipartFiles);
+                    postPhotoService.saveAllPostPhotoByBoard(getS3ResList, board);
+                }
+
+                return "boardId " + board.getBoardId() + "의 게시글을 수정했습니다.";
             }
-
-            return "boardId " + board.getBoardId() + "의 게시글을 수정했습니다.";
-        }
-        else {
-            throw new BaseException(BaseResponseStatus.MEMBER_WITHOUT_PERMISSION);
+            else {
+                throw new BaseException(BaseResponseStatus.MEMBER_WITHOUT_PERMISSION);
+            }
+        } catch(BaseException exception) {
+            throw new BaseException(exception.getStatus());
         }
     }
 }

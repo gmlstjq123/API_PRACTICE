@@ -1,4 +1,4 @@
-package com.example.umc4_heron_template_jpa.utils.dto;
+package com.example.umc4_heron_template_jpa.board.photo.dto;
 
 import lombok.Data;
 

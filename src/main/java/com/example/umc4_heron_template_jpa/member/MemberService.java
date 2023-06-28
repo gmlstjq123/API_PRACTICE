@@ -2,13 +2,17 @@ package com.example.umc4_heron_template_jpa.member;
 
 import com.example.umc4_heron_template_jpa.board.Board;
 import com.example.umc4_heron_template_jpa.board.BoardRepository;
+import com.example.umc4_heron_template_jpa.board.photo.dto.GetS3Res;
 import com.example.umc4_heron_template_jpa.config.BaseException;
-import com.example.umc4_heron_template_jpa.config.BaseResponse;
 import com.example.umc4_heron_template_jpa.login.dto.JwtResponseDTO;
 import com.example.umc4_heron_template_jpa.login.jwt.JwtProvider;
 import com.example.umc4_heron_template_jpa.login.jwt.JwtService;
 import com.example.umc4_heron_template_jpa.member.dto.*;
+import com.example.umc4_heron_template_jpa.member.profile.Profile;
+import com.example.umc4_heron_template_jpa.member.profile.ProfileRepository;
+import com.example.umc4_heron_template_jpa.member.profile.ProfileService;
 import com.example.umc4_heron_template_jpa.utils.AES128;
+import com.example.umc4_heron_template_jpa.utils.S3Service;
 import com.example.umc4_heron_template_jpa.utils.Secret;
 import com.example.umc4_heron_template_jpa.utils.UtilService;
 import lombok.RequiredArgsConstructor;
@@ -16,6 +20,7 @@ import org.springframework.http.*;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.EnableTransactionManagement;
 import org.springframework.web.client.RestTemplate;
+import org.springframework.web.multipart.MultipartFile;
 
 import javax.transaction.Transactional;
 import java.util.List;
@@ -30,9 +35,11 @@ public class MemberService {
 
     private final MemberRepository memberRepository;
     private final BoardRepository boardRepository;
-    private final JwtService jwtService;
+    private final ProfileRepository profileRepository;
+    private final S3Service s3Service;
     private final JwtProvider jwtProvider;
     private final UtilService utilService;
+    private final ProfileService profileService;
 
     /**
      * 유저 생성 후 DB에 저장
@@ -94,6 +101,27 @@ public class MemberService {
     }
 
     /**
+     *  멤버 프로필 생성
+     */
+    @Transactional
+    public String createProfile(Long memberId, MultipartFile multipartFile) throws BaseException {
+        try {
+            Member member = utilService.findByMemberIdWithValidation(memberId);
+            if(multipartFile != null){
+                GetS3Res getS3Res = s3Service.uploadSingleFile(multipartFile);
+                profileService.saveProfile(getS3Res, member);
+            }
+            else {
+                GetS3Res getS3Res = new GetS3Res(null, null);
+                profileService.saveProfile(getS3Res, member);
+            }
+            return "프로필 생성이 완료되었습니다.";
+        } catch(BaseException exception) {
+            throw new BaseException(exception.getStatus());
+        }
+    }
+
+    /**
      * 모든 회원 조회
      */
     public List<GetMemberRes> getMembers() throws BaseException {
@@ -127,7 +155,7 @@ public class MemberService {
      * 닉네임 변경
      */
     @Transactional
-    public void modifyUserName(PatchMemberReq patchMemberReq) {
+    public void modifyMemberName(PatchMemberReq patchMemberReq) {
         Member member = memberRepository.getReferenceById(patchMemberReq.getMemberId());
         member.updateNickName(patchMemberReq.getNickName());
     }
@@ -142,6 +170,58 @@ public class MemberService {
         memberRepository.deleteMember(member.getEmail());
         String result = "요청하신 회원에 대한 삭제가 완료되었습니다.";
         return result;
+    }
+
+    /**
+     *  멤버 프로필 변경
+     */
+    @Transactional
+    public String modifyProfile(Long memberId, MultipartFile multipartFile) throws BaseException {
+        try {
+            Member member = utilService.findByMemberIdWithValidation(memberId);
+            Profile profile = profileRepository.findProfileById(memberId).orElse(null);
+            if(profile == null) { // 프로필을 생성한 적 없는 멤버가 프로필 변경을 시도하는 경우
+                GetS3Res getS3Res;
+                if(multipartFile != null) {
+                    getS3Res = s3Service.uploadSingleFile(multipartFile);
+                }
+                else {
+                    getS3Res = new GetS3Res(null, null);
+                }
+                profileService.saveProfile(getS3Res, member);
+            }
+            else { // 기존 프로필이 있는 멤버가 프로필 변경을 시도하는 경우
+                if(member.getProfile().getProfileUrl() == null) { // 기존 프로필이 null인 경우
+                    if(multipartFile != null){
+                        profileService.deleteProfileById(memberId);
+                        GetS3Res getS3Res = s3Service.uploadSingleFile(multipartFile);
+                        profileService.saveProfile(getS3Res, member);
+                    }
+                    else {
+                        profileService.deleteProfileById(memberId);
+                        GetS3Res getS3Res = new GetS3Res(null, null);
+                        profileService.saveProfile(getS3Res, member);
+                    }
+                }
+                else { // 기존 프로필 사진이 있는 경우
+                    // 1. 버킷에서 삭제
+                    profileService.deleteProfile(profile);
+                    // 2. Profile Repository에서 삭제
+                    profileService.deleteProfileById(memberId);
+                    GetS3Res getS3Res;
+                    if(multipartFile != null) {
+                        getS3Res = s3Service.uploadSingleFile(multipartFile);
+                    }
+                    else {
+                        getS3Res = new GetS3Res(null, null);
+                    }
+                    profileService.saveProfile(getS3Res, member);
+                }
+            }
+            return "프로필 수정이 완료되었습니다.";
+        } catch(BaseException exception) {
+            throw new BaseException(exception.getStatus());
+        }
     }
 
     //액세스 토큰, 리프레시 토큰 함께 재발급

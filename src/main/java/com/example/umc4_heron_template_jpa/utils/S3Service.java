@@ -2,7 +2,7 @@ package com.example.umc4_heron_template_jpa.utils;
 
 import com.amazonaws.services.s3.AmazonS3;
 import com.amazonaws.services.s3.model.*;
-import com.example.umc4_heron_template_jpa.utils.dto.GetS3Res;
+import com.example.umc4_heron_template_jpa.board.photo.dto.GetS3Res;
 import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpStatus;
@@ -60,6 +60,22 @@ public class S3Service {
             fileList.add(new GetS3Res(s3Client.getUrl(bucket,fileName).toString(), fileName));
         });
         return fileList;
+    }
+
+    public GetS3Res uploadSingleFile(MultipartFile multipartFile) {
+        String fileName = createFileName(multipartFile.getOriginalFilename());
+        ObjectMetadata objectMetadata = new ObjectMetadata();
+        objectMetadata.setContentLength(multipartFile.getSize());
+        objectMetadata.setContentType(multipartFile.getContentType());
+
+        try(InputStream inputStream = multipartFile.getInputStream()) {
+            s3Client.putObject(new PutObjectRequest(bucket, fileName, inputStream, objectMetadata)
+                    .withCannedAcl(CannedAccessControlList.PublicRead));
+        } catch(IOException e) {
+            throw new ResponseStatusException(HttpStatus.INTERNAL_SERVER_ERROR, "파일 업로드에 실패했습니다.");
+        }
+        GetS3Res getS3Res = new GetS3Res(s3Client.getUrl(bucket,fileName).toString(), fileName);
+        return getS3Res;
     }
 
     public void deleteFile(String fileName) {

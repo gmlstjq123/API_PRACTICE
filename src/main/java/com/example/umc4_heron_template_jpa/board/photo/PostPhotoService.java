@@ -1,7 +1,7 @@
 package com.example.umc4_heron_template_jpa.board.photo;
 
 import com.example.umc4_heron_template_jpa.board.Board;
-import com.example.umc4_heron_template_jpa.utils.dto.GetS3Res;
+import com.example.umc4_heron_template_jpa.board.photo.dto.GetS3Res;
 import com.example.umc4_heron_template_jpa.utils.S3Service;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
@@ -31,7 +31,9 @@ public class PostPhotoService {
         List<PostPhoto> postPhotos = new ArrayList<>();
         for (GetS3Res getS3Res : getS3ResList) {
             PostPhoto newPostPhoto = PostPhoto.builder()
-                    .imgUrl(getS3Res.getImgUrl()).fileName(getS3Res.getFileName()).build();
+                    .imgUrl(getS3Res.getImgUrl())
+                    .fileName(getS3Res.getFileName())
+                    .build();
             postPhotos.add(newPostPhoto);
             board.addPhotoList(newPostPhoto);
         }

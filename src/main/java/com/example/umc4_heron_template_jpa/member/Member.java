@@ -1,6 +1,7 @@
 package com.example.umc4_heron_template_jpa.member;
 
 import com.example.umc4_heron_template_jpa.board.Board ;
+import com.example.umc4_heron_template_jpa.member.profile.Profile;
 import com.example.umc4_heron_template_jpa.utils.BaseTimeEntity;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
@@ -33,6 +34,8 @@ public class Member extends BaseTimeEntity {
     private String accessToken;
     @Column(columnDefinition = "boolean default false")
     private boolean isSocialLogin;
+    @OneToOne(mappedBy = "member", cascade = CascadeType.ALL, orphanRemoval = true)
+    private Profile profile;
     @OneToMany(mappedBy = "member", cascade = CascadeType.ALL, orphanRemoval = true)
     private List<Board> boards = new ArrayList<>();
     @OneToMany(mappedBy = "member", cascade = CascadeType.ALL, orphanRemoval = true)
@@ -58,5 +61,8 @@ public class Member extends BaseTimeEntity {
     }
     public void updateIsSocialLogin(){
         this.isSocialLogin = true;
+    }
+    public void updateProfile(Profile profile) {
+        this.profile= profile;
     }
 }

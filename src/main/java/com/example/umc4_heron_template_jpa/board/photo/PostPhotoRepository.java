@@ -8,7 +8,7 @@ import org.springframework.data.repository.query.Param;
 import java.util.List;
 import java.util.Optional;
 
-public interface PostPhotoRepository  extends JpaRepository<PostPhoto, Integer> {
+public interface PostPhotoRepository  extends JpaRepository<PostPhoto, Long> {
 
 
     @Query("select p from PostPhoto p where p.board.boardId = :boardId")
