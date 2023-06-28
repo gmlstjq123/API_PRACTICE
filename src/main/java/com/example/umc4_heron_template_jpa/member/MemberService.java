@@ -180,43 +180,22 @@ public class MemberService {
         try {
             Member member = utilService.findByMemberIdWithValidation(memberId);
             Profile profile = profileRepository.findProfileById(memberId).orElse(null);
-            if(profile == null) { // 프로필을 생성한 적 없는 멤버가 프로필 변경을 시도하는 경우
+            if(profile == null) { // 프로필이 미등록된 사용자가 변경을 요청하는 경우
                 GetS3Res getS3Res;
                 if(multipartFile != null) {
                     getS3Res = s3Service.uploadSingleFile(multipartFile);
+                    profileService.saveProfile(getS3Res, member);
                 }
-                else {
-                    getS3Res = new GetS3Res(null, null);
-                }
-                profileService.saveProfile(getS3Res, member);
             }
-            else { // 기존 프로필이 있는 멤버가 프로필 변경을 시도하는 경우
-                if(member.getProfile().getProfileUrl() == null) { // 기존 프로필이 null인 경우
-                    if(multipartFile != null){
-                        profileService.deleteProfileById(memberId);
-                        GetS3Res getS3Res = s3Service.uploadSingleFile(multipartFile);
-                        profileService.saveProfile(getS3Res, member);
-                    }
-                    else {
-                        profileService.deleteProfileById(memberId);
-                        GetS3Res getS3Res = new GetS3Res(null, null);
-                        profileService.saveProfile(getS3Res, member);
-                    }
-                }
-                else { // 기존 프로필 사진이 있는 경우
+            else { // 프로필이 등록된 사용자가 변경을 요청하는 경우
                     // 1. 버킷에서 삭제
                     profileService.deleteProfile(profile);
                     // 2. Profile Repository에서 삭제
                     profileService.deleteProfileById(memberId);
-                    GetS3Res getS3Res;
                     if(multipartFile != null) {
-                        getS3Res = s3Service.uploadSingleFile(multipartFile);
+                        GetS3Res getS3Res = s3Service.uploadSingleFile(multipartFile);
+                        profileService.saveProfile(getS3Res, member);
                     }
-                    else {
-                        getS3Res = new GetS3Res(null, null);
-                    }
-                    profileService.saveProfile(getS3Res, member);
-                }
             }
             return "프로필 수정이 완료되었습니다.";
         } catch(BaseException exception) {

@@ -18,21 +18,14 @@ public class ProfileService {
     @Transactional
     public void saveProfile(GetS3Res getS3Res, Member member){
         Profile profile;
-        if(getS3Res.getImgUrl() == null){
+        if(getS3Res.getImgUrl() != null) {
             profile = Profile.builder()
-                    .profileUrl(null)
-                    .profileFileName(null)
-                    .member(member)
-                    .build();
-        }
-        else {
-           profile = Profile.builder()
                     .profileUrl(getS3Res.getImgUrl())
                     .profileFileName(getS3Res.getFileName())
                     .member(member)
                     .build();
+            profileRepository.save(profile);
         }
-        profileRepository.save(profile);
     }
 
     @Transactional
