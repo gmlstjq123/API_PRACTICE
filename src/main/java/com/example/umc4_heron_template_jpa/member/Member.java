@@ -62,7 +62,4 @@ public class Member extends BaseTimeEntity {
     public void updateIsSocialLogin(){
         this.isSocialLogin = true;
     }
-    public void updateProfile(Profile profile) {
-        this.profile= profile;
-    }
 }
