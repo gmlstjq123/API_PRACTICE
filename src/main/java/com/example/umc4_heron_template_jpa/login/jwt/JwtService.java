@@ -156,7 +156,7 @@ public class JwtService {
     /**
      * Redis 블랙 리스트 등록 여부 확인
      */
-    private boolean checkBlackToken(String accessToken) throws BaseException{
+    private boolean checkBlackToken(String accessToken) {
         // Redis에 있는 엑세스 토큰인 경우 로그아웃 처리된 엑세스 토큰이다.
         Object redisToken = redisTemplate.opsForValue().get(accessToken);
         if (redisToken != null) { // Redis에 저장된 토큰이면 블랙토큰

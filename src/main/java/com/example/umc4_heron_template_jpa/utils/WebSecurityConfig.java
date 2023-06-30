@@ -21,7 +21,7 @@ public class WebSecurityConfig extends WebSecurityConfigurerAdapter {
     }
 
     /**
-     * 세션 기반 인증을 위해 사용하는 스프링 빈이므로 토큰 기반 인증 방식을 사용한다면 안 써도 됨.
+     * 세션 기반 인증을 위해 사용하는 스프링 Ec2빈이므로 토큰 기반 인증 방식을 사용한다면 안 써도 됨.
      */
 //    @Bean
 //    public BCryptPasswordEncoder bCryptPasswordEncoder() {
