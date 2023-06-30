@@ -6,17 +6,15 @@ import com.example.umc4_heron_template_jpa.board.photo.dto.GetS3Res;
 import com.example.umc4_heron_template_jpa.config.BaseException;
 import com.example.umc4_heron_template_jpa.login.dto.JwtResponseDTO;
 import com.example.umc4_heron_template_jpa.login.jwt.JwtProvider;
-import com.example.umc4_heron_template_jpa.login.jwt.JwtService;
 import com.example.umc4_heron_template_jpa.member.dto.*;
 import com.example.umc4_heron_template_jpa.member.profile.Profile;
 import com.example.umc4_heron_template_jpa.member.profile.ProfileRepository;
 import com.example.umc4_heron_template_jpa.member.profile.ProfileService;
-import com.example.umc4_heron_template_jpa.utils.AES128;
-import com.example.umc4_heron_template_jpa.utils.S3Service;
-import com.example.umc4_heron_template_jpa.utils.Secret;
-import com.example.umc4_heron_template_jpa.utils.UtilService;
+import com.example.umc4_heron_template_jpa.utils.*;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.http.*;
+import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.EnableTransactionManagement;
 import org.springframework.web.client.RestTemplate;
@@ -24,6 +22,7 @@ import org.springframework.web.multipart.MultipartFile;
 
 import javax.transaction.Transactional;
 import java.util.List;
+import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 
 import static com.example.umc4_heron_template_jpa.config.BaseResponseStatus.*;
@@ -40,9 +39,11 @@ public class MemberService {
     private final JwtProvider jwtProvider;
     private final UtilService utilService;
     private final ProfileService profileService;
+    // private final BCryptPasswordEncoder bCryptPasswordEncoder; // spring security login 사용 시 필요
+    private final RedisTemplate redisTemplate;
 
     /**
-     * 유저 생성 후 DB에 저장
+     * 유저 생성 후 DB에 저장(회원 가입) with JWT
      */
     @Transactional
     public PostMemberRes createMember(PostMemberReq postMemberReq) throws BaseException {
@@ -72,15 +73,11 @@ public class MemberService {
     }
 
     /**
-     * 유저 로그인
+     * 유저 로그인 with JWT
      */
     public PostLoginRes login(PostLoginReq postLoginReq) throws BaseException {
-        Member member = utilService.findByMemberIdWithValidation(postLoginReq.getMemberId());
-        Member checkMember = memberRepository.findMemberByEmail(postLoginReq.getEmail());
-        if(member!= checkMember) {
-            throw new BaseException(INVALID_MEMBER_ID);
-        }
-        String password;
+        Member member = utilService.findByEmailWithValidation(postLoginReq.getEmail());
+        String password; // DB에 저장된 암호화된 비밀번호를 복호화한 값을 저장하기 위한 변수
         try{
             password = new AES128(Secret.USER_INFO_PASSWORD_KEY).decrypt(member.getPassword()); // 복호화
         } catch (Exception ignored) {
@@ -101,25 +98,53 @@ public class MemberService {
     }
 
     /**
-     *  멤버 프로필 생성
+     * 유저 회원가입 with Spring Security
      */
-    @Transactional
-    public String createProfile(Long memberId, MultipartFile multipartFile) throws BaseException {
-        try {
-            Member member = utilService.findByMemberIdWithValidation(memberId);
-            if(multipartFile != null){
-                GetS3Res getS3Res = s3Service.uploadSingleFile(multipartFile);
-                profileService.saveProfile(getS3Res, member);
-            }
-            else {
-                GetS3Res getS3Res = new GetS3Res(null, null);
-                profileService.saveProfile(getS3Res, member);
-            }
-            return "프로필 생성이 완료되었습니다.";
-        } catch(BaseException exception) {
-            throw new BaseException(exception.getStatus());
-        }
-    }
+//    @Transactional
+//    public PostMemberRes securityCreateMember(PostMemberReq postMemberReq) throws BaseException {
+//        if(memberRepository.findByEmailCount(postMemberReq.getEmail()) >= 1) {
+//            throw new BaseException(POST_USERS_EXISTS_EMAIL);
+//        }
+//        if(postMemberReq.getPassword().isEmpty()){
+//            throw new BaseException(PASSWORD_CANNOT_BE_NULL);
+//        }
+//        String pwd;
+//        try{
+//            // 암호화: postMemberReq에서 제공받은 비밀번호를 보안을 위해 암호화시켜 DB에 저장합니다.
+//            pwd =  bCryptPasswordEncoder.encode(postMemberReq.getPassword());// 암호화코드
+//        }
+//        catch (Exception ignored) { // 암호화가 실패하였을 경우 에러 발생
+//            throw new BaseException(PASSWORD_ENCRYPTION_ERROR);
+//        }
+//        try {
+//            Member member = new Member();
+//            member.createMember(postMemberReq.getEmail(), postMemberReq.getNickName(), pwd);
+//            memberRepository.save(member);
+//            return new PostMemberRes(member.getId(), member.getNickName());
+//        } catch (Exception exception) { // DB에 이상이 있는 경우 에러 메시지를 보냅니다.
+//            throw new BaseException(DATABASE_ERROR);
+//        }
+//    }
+
+    /**
+     * 유저 로그인 with Spring Security
+     */
+//    public PostLoginRes sercutiryLogin(PostLoginReq postLoginReq) throws BaseException {
+//        Member member = utilService.findByEmailWithValidation(postLoginReq.getEmail());
+//        String rawPassword = postLoginReq.getPassword(); // 입력 받은 비밀번호를 암호화한 값을 저장하기 위한 변수
+//        if(bCryptPasswordEncoder.matches(rawPassword, member.getPassword())) {
+//            JwtResponseDTO.TokenInfo tokenInfo = jwtProvider.generateToken(member.getId());
+//            String accessToken = tokenInfo.getAccessToken();
+//            String refreshToken = tokenInfo.getRefreshToken();
+//            member.updateAccessToken(accessToken);
+//            member.updateRefreshToken(refreshToken);
+//            memberRepository.save(member);
+//            return new PostLoginRes(member.getId(), accessToken, refreshToken);
+//        }
+//        else{
+//            throw new BaseException(FAILED_TO_LOGIN);
+//        }
+//    }
 
     /**
      * 모든 회원 조회
@@ -198,37 +223,30 @@ public class MemberService {
                     }
             }
             return "프로필 수정이 완료되었습니다.";
-        } catch(BaseException exception) {
+        } catch (BaseException exception) {
             throw new BaseException(exception.getStatus());
         }
     }
 
-    //액세스 토큰, 리프레시 토큰 함께 재발급
-    public JwtResponseDTO.TokenInfo reissue(Long memberId) {
-        Member member = memberRepository.findById(memberId).get();
-        JwtResponseDTO.TokenInfo tokenInfo = jwtProvider.generateToken(memberId);
-        member.updateRefreshToken(tokenInfo.getRefreshToken());
-        memberRepository.save(member);
-        return tokenInfo;
-    }
-
-    public String logout(Long memberId, String accessToken) throws BaseException {
-        Member logoutMember = utilService.findByMemberIdWithValidation(memberId);
-        String invalidToken = jwtProvider.makeInvalidToken(accessToken);
-        String invalidRefToken = jwtProvider.makeInvalidToken(logoutMember.getRefreshToken());
-        if(invalidToken != null && invalidRefToken != null){
-            // 두 토큰을 모두 만료시키는데 성공한 경우
-            logoutMember.updateAccessToken(invalidToken);
-            logoutMember.updateRefreshToken(invalidRefToken);
+    @Transactional
+    public String logout(Member logoutMember) throws BaseException{
+        try {
+            String accessToken = logoutMember.getAccessToken();
+            //엑세스 토큰 남은 유효시간
+            Long expiration = jwtProvider.getExpiration(accessToken);
+            //Redis Cache에 저장
+            redisTemplate.opsForValue().set(accessToken, "logout", expiration, TimeUnit.MILLISECONDS);
+            //리프레쉬 토큰 삭제
+            logoutMember.updateRefreshToken("");
             memberRepository.save(logoutMember);
             String result = "로그아웃 되었습니다.";
             return result;
-        }
-        else {
-            // 토큰을 만료시키는데 실패한 경우
+        } catch (Exception e) {
             throw new BaseException(FAILED_TO_LOGOUT);
         }
+
     }
+
     public String socialLogout(String accessToken) throws BaseException{
         // HttpHeader 생성
         HttpHeaders httpHeaders = new HttpHeaders();

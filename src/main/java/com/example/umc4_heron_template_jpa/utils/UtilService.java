@@ -24,20 +24,15 @@ public class UtilService {
         return member;
     }
 
-    public Member findByAccessTokenWithValidation(String accessToken) throws BaseException {
-        Member member = memberRepository.findMemberByAccessToken(accessToken).orElse(null);
-        if(member == null) throw new BaseException(BaseResponseStatus.INVALID_JWT);
+    public Member findByEmailWithValidation(String email) throws BaseException {
+        Member member = memberRepository.findByEmail(email).orElse(null);
+        if(member == null) throw new BaseException(BaseResponseStatus.POST_USERS_NONE_EXISTS_EMAIL);
         return member;
     }
+
     public Board findByBoardIdWithValidation(Long boardId) throws BaseException {
         Board board = boardRepository.findBoardById(boardId).orElse(null);
         if(board == null) throw new BaseException(BaseResponseStatus.NONE_EXIST_BOARD);
         return board;
-    }
-
-    public Comment findByCommentIdWithValidation(Long commentId) throws BaseException {
-        Comment comment = commentRepository.findCommentById(commentId).orElse(null);
-        if(comment==null) throw new BaseException(BaseResponseStatus.NONE_EXIST_COMMENT);
-        return comment;
     }
 }

@@ -4,13 +4,10 @@ import com.example.umc4_heron_template_jpa.config.BaseException;
 import com.example.umc4_heron_template_jpa.config.BaseResponse;
 import com.example.umc4_heron_template_jpa.login.jwt.JwtProvider;
 import com.example.umc4_heron_template_jpa.login.jwt.JwtService;
-import com.example.umc4_heron_template_jpa.login.kakao.KakaoService;
 import com.example.umc4_heron_template_jpa.member.dto.*;
 import com.example.umc4_heron_template_jpa.member.profile.ProfileService;
-import com.example.umc4_heron_template_jpa.member.profile.dto.PostProfileReq;
 import com.example.umc4_heron_template_jpa.utils.UtilService;
 import lombok.RequiredArgsConstructor;
-import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 
@@ -29,8 +26,9 @@ public class MemberController {
     private final ProfileService profileService;
     private final JwtProvider jwtProvider;
     private final UtilService utilService;
+
     /**
-     * 회원 가입
+     * 회원 가입 without Spring Security
      */
     @PostMapping("/create")
     public BaseResponse<PostMemberRes> createMember(@RequestBody PostMemberReq postMemberReq){
@@ -43,7 +41,20 @@ public class MemberController {
     }
 
     /**
-     * 로그인
+     * 회원 가입 with Spring Security
+     */
+//    @PostMapping("/security-create")
+//    public BaseResponse<PostMemberRes> securityCreateMember(@RequestBody PostMemberReq postMemberReq){
+//        if(!isRegexEmail(postMemberReq.getEmail())) return new BaseResponse<>(POST_USERS_INVALID_EMAIL);
+//        try{
+//            return new BaseResponse<>(memberService.securityCreateMember(postMemberReq));
+//        } catch (BaseException exception) {
+//            return new BaseResponse<>((exception.getStatus()));
+//        }
+//    }
+
+    /**
+     * 로그인 without Spring Security
      */
     @PostMapping("/log-in")
     public BaseResponse<PostLoginRes> loginMember(@RequestBody PostLoginReq postLoginReq){
@@ -55,13 +66,37 @@ public class MemberController {
         }
     }
 
+//    /**
+//     * 로그인 with Spring Security
+//     */
+//    @PostMapping("/security-log-in")
+//    public BaseResponse<PostLoginRes> sercurityLoginMember(@RequestBody PostLoginReq postLoginReq){
+//        try{
+//            if(!isRegexEmail(postLoginReq.getEmail())) return new BaseResponse<>(POST_USERS_INVALID_EMAIL);
+//            return new BaseResponse<>(memberService.sercutiryLogin(postLoginReq));
+//        } catch (BaseException exception) {
+//            return new BaseResponse<>(exception.getStatus());
+//        }
+//    }
+
     @PostMapping("/log-out")
     public BaseResponse<String> logoutMember() {
         try {
-            Long memberId = jwtService.getMemberIdx();
+            Long memberId = jwtService.getLogoutMemberIdx(); // 토큰 만료 상황에서 로그아웃을 시도하면 0L을 반환
+            if (memberId == 0L) { // 로그아웃 요청은 access token이 만료되더라도 재발급할 필요가 없음.
+                Member member = memberRepository.findMemberByAccessToken(jwtService.getJwt()).orElse(null);
+                if (member != null) {
+                    member.updateRefreshToken("");
+                    memberRepository.save(member);
+                    String result = "로그아웃 되었습니다.";
+                    return new BaseResponse<>(result);
+                }
+                else {
+                    return new BaseResponse<>(INVALID_JWT);
+                }
+            }
             Member logoutMember = utilService.findByMemberIdWithValidation(memberId);
-            String accessToken = logoutMember.getAccessToken();
-            String result = memberService.logout(memberId, accessToken);
+            String result = memberService.logout(logoutMember);
             return new BaseResponse<>(result);
         } catch (BaseException exception) {
             return new BaseResponse<>(exception.getStatus());
