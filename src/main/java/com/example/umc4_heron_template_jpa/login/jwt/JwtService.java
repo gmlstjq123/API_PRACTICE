@@ -21,6 +21,7 @@ import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 import java.security.Key;
 import java.util.Date;
+import java.util.Optional;
 
 import static com.example.umc4_heron_template_jpa.config.BaseResponseStatus.*;
 
@@ -131,11 +132,11 @@ public class JwtService {
         try {
             // 리프레시 토큰이 없는(로그인을 하지 않은) 경우
             if (refreshToken.equals("")) {
-                throw new BaseException(INVALID_USER_JWT);
+                throw new BaseException(INVALID_JWT);
             }
             // 리프레시 토큰이 만료 등의 이유로 유효하지 않은 경우
             if (!jwtProvider.validateToken(refreshToken)) {
-                throw new BaseException(EXPIRED_USER_JWT);
+                throw new BaseException(INVALID_JWT);
             }
             else { // 리프레시 토큰이 유효한 경우
                 Long memberId = member.getId();
@@ -163,6 +164,48 @@ public class JwtService {
             return true;
         }
         return false;
+    }
+
+    public Long getMemberIdx(String accessToken) throws BaseException {
+        // 1. JWT 추출
+        if (accessToken == null || accessToken.length() == 0) {
+            throw new BaseException(EMPTY_JWT);
+        }
+        if (checkBlackToken(accessToken)) {
+            throw new BaseException(LOG_OUT_MEMBER);
+        }
+        try {
+            // 2. JWT parsing
+            Jws<Claims> claims = Jwts.parserBuilder()
+                    .setSigningKey(key)
+                    .build()
+                    .parseClaimsJws(accessToken);
+            // 3. userId 추출
+            return claims.getBody().get("memberId", Long.class);
+        } catch (ExpiredJwtException e) {
+            // access token이 만료된 경우
+            Member member = memberRepository.findMemberByAccessToken(accessToken).orElse(null);
+            if (member == null) {
+                throw new BaseException(INVALID_JWT);
+            }
+            // 4. Refresh Token을 사용하여 새로운 Access Token 발급
+            String refreshToken = member.getRefreshToken();
+            if (refreshToken != null) {
+                String newAccessToken = refreshAccessToken(member, refreshToken);
+                // 새로운 Access Token으로 업데이트된 JWT를 사용하여 userId 추출
+                Jws<Claims> newClaims = Jwts.parserBuilder()
+                        .setSigningKey(key)
+                        .build()
+                        .parseClaimsJws(newAccessToken);
+                return newClaims.getBody().get("memberId", Long.class);
+            } else {
+                throw new BaseException(EMPTY_JWT);
+            }
+        } catch (io.jsonwebtoken.security.SecurityException | MalformedJwtException e) {
+            throw new BaseException(INVALID_JWT);
+        } catch (Exception ignored) {
+            throw new BaseException(INVALID_JWT);
+        }
     }
 }
 

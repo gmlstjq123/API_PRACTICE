@@ -121,7 +121,7 @@ public class JwtProvider {
     }
 
     //==토큰 앞 부분('Bearer') 제거 메소드==//
-    private String BearerRemove(String token) {
+    public String BearerRemove(String token) {
         return token.substring("Bearer ".length());
     }
 

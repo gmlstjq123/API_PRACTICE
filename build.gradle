@@ -36,8 +36,12 @@ dependencies {
     // S3 의존성
     implementation 'org.springframework.cloud:spring-cloud-starter-aws:2.2.6.RELEASE'
 
-    //redis 설정
+    // redis 의존성
     implementation 'org.springframework.boot:spring-boot-starter-data-redis'
+
+    // 채팅 서버 의존성
+    implementation 'org.springframework.boot:spring-boot-starter-websocket'
+    implementation 'org.springframework:spring-websocket'
 
     compileOnly 'org.projectlombok:lombok'
     runtimeOnly 'com.mysql:mysql-connector-j'
